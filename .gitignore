@@ -1,0 +1,23 @@
+# .gitignore
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environments
+.venv/
+.env/
+
+# Poetry specific files
+poetry.lock
+.cache/
+
+# Logs
+logs/
+*.log
+
+# System-specific
+.DS_Store
+.idea/
+.vscode/
