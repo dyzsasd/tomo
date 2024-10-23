@@ -1,7 +1,9 @@
 
+import abc
 from collections import deque
 from enum import Enum
 import logging
+import time
 from typing import Any
 from typing import Deque
 from typing import Dict
@@ -9,7 +11,10 @@ from typing import Iterator
 from typing import List
 from typing import Optional
 from typing import Text
+from typing import Type
 from typing import TYPE_CHECKING
+from typing import Tuple
+from typing import Union
 from typing import cast
 
 from .constants import ACTION_LISTEN_NAME
@@ -20,8 +25,6 @@ from .events import ActionExecuted
 from .events import BotUttered
 from .events import UserUttered
 from .slots import Slot
-from .nlu import Entity
-from .nlu import Intent
 from .utils.json_meta import JSONSerializableMeta
 
 if TYPE_CHECKING:
@@ -67,6 +70,12 @@ class Session(metaclass=JSONSerializableMeta):
         self.active = True
         self._reset()
 
+    def copy(self) -> "Session":
+        # TODO: avoid using seriliazation and deserialization
+        js_object = self.to_json()
+        _session = Session.from_json(js_object)
+        return _session
+
     def _reset(self) -> None:
         """
         Reset session to initial state - doesn't delete events though!.
@@ -81,6 +90,10 @@ class Session(metaclass=JSONSerializableMeta):
         self.latest_bot_utterance = None
         self.followup_action = ACTION_LISTEN_NAME
         self.active = True
+    
+    def clear_followup_action(self) -> None:
+        """Clears follow up action when it was executed."""
+        self.followup_action = None
 
     def _events_for_verbosity(
         self, event_verbosity: EventVerbosity
@@ -211,6 +224,24 @@ class Session(metaclass=JSONSerializableMeta):
         self.events.append(event)
         event.apply_to(self)
 
+    def update_with_events(
+        self,
+        new_events: List[Event],
+        override_timestamp: bool = True,
+    ) -> None:
+        """Adds multiple events to the session.
+
+        Args:
+            new_events: Events to apply.
+            override_timestamp: If `True` refresh all timestamps of the events. As the
+                events are usually created at some earlier point, this makes sure that
+                all new events come after any current session events.
+        """
+        for e in new_events:
+            if override_timestamp:
+                e.timestamp = time.time()
+            self.update_with_event(e)
+
     def _reset_slots(self) -> None:
         """Set all the slots to their initial value."""
         for slot in self.slots.values():
@@ -245,6 +276,64 @@ class Session(metaclass=JSONSerializableMeta):
     def get_event_history(self) -> List[Dict[str, Any]]:
         """Return a list of all the events in the session."""
         return [event.as_dict() for event in self.events]
+
+    def get_last_event_for(
+        self,
+        event_type: Union[Type["EventTypeAlias"], Tuple[Type["EventTypeAlias"], ...]],
+        action_names_to_exclude: Optional[List[Text]] = None,
+        skip: int = 0,
+        event_verbosity: EventVerbosity = EventVerbosity.APPLIED,
+    ) -> Optional["EventTypeAlias"]:
+        """Gets the last event of a given type which was actually applied.
+
+        Args:
+            event_type: The type of event you want to find.
+            action_names_to_exclude: Events of type `ActionExecuted` which
+                should be excluded from the results. Can be used to skip
+                `action_listen` events.
+            skip: Skips n possible results before return an event.
+            event_verbosity: Which `EventVerbosity` should be used to search for events.
+
+        Returns:
+            event which matched the query or `None` if no event matched.
+        """
+        to_exclude = action_names_to_exclude or []
+
+        def filter_function(e: Event) -> bool:
+            has_instance = isinstance(e, event_type)
+            excluded = isinstance(e, ActionExecuted) and e.action_name in to_exclude
+            return has_instance and not excluded
+
+        filtered = filter(
+            filter_function, reversed(self._events_for_verbosity(event_verbosity) or [])
+        )
+
+        for i in range(skip):
+            next(filtered, None)
+
+        return next(filtered, None)
+
+
+class SessionManager(abc.ABC):
+    @abc.abstractmethod
+    async def get_or_create_session(self, session_id: str, max_event_history: Optional[int] = None) -> Session:
+        pass
+
+    @abc.abstractmethod
+    def update_session(self, session_id: str, event: Event) -> None:
+        pass
+
+    @abc.abstractmethod
+    def get_session(self, session_id: str) -> Optional[Session]:
+        pass
+
+    @abc.abstractmethod
+    def delete_session(self, session_id: str) -> None:
+        pass
+
+    @abc.abstractmethod
+    def save(self, session: str) -> None:
+        pass
 
 
 class InMemorySessionManager:
@@ -304,3 +393,6 @@ class InMemorySessionManager:
         """
         if session_id in self.sessions:
             del self.sessions[session_id]
+    
+    def save(self, session: Session) -> None:
+        self.sessions[session.session_id] = session

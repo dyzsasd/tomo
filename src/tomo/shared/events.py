@@ -173,6 +173,15 @@ class ActionExecuted(Event):
         session.latest_action = self.action_name
 
 
+class ActionFailed(Event):
+    action_name: str
+    policy: typing.Optional[typing.Text] = None
+    
+    def apply_to(self, session: "Session") -> None:
+        # TODO: thinking about how to handle the failed action
+        pass
+
+
 class SessionStarted(Event):
     """
     Event representing the start of a new session.
@@ -188,3 +197,18 @@ class SessionStarted(Event):
             session: The session that will be reset.
         """
         session.reset()
+
+class SessionDisabled(Event):
+    """
+    Event to disable a session.
+
+    """
+
+    def apply_to(self, session: "Session") -> None:
+        """
+        Reset the session at the start of a new session.
+
+        Args:
+            session: The session that will be reset.
+        """
+        session.active = False
