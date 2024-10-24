@@ -27,6 +27,7 @@ class Session(abc.ABC):
     This class tracks the state of a conversation for a particular session.
     It stores information such as intents, entities, and user messages.
     """
+
     def __init__(self, session_id: str, max_event_history: Optional[int] = None) -> None:
         """
         Initialize a new session with a unique session ID.
@@ -60,12 +61,13 @@ class Session(abc.ABC):
             "latest_bot_utterance": self.latest_bot_utterance,
             "active": self.active,
         }
-    
+
     @classmethod
     def from_dict(cls, data: dict):
         session_id = data.get("session_id")
         if session_id is None:
-            raise BadParameter("session id is missing, cannot read the session from dict")
+            raise BadParameter(
+                "session id is missing, cannot read the session from dict")
         session = Session(session_id)
 
         session.max_event_history = data.get("max_event_history")
@@ -82,7 +84,7 @@ class Session(abc.ABC):
         session.latest_message = data.get("latest_message")
         session.latest_bot_utterance = data.get("latest_bot_utterance")
         session.active = data.get("active", True)
-        
+
         return session
 
     def copy(self) -> "Session":
@@ -91,7 +93,7 @@ class Session(abc.ABC):
     def _reset(self) -> None:
         """
         Reset session to initial state - doesn't delete events though!.
-        
+
         Internal methods for the modification of the session state. Should
         only be called by events, not directly. Rather update the session
         with an event that in its ``apply_to`` method modifies the session.
@@ -129,7 +131,7 @@ class Session(abc.ABC):
                 all new events come after any current session events.
         """
         pass
-    
+
     def _reset_slots(self) -> None:
         """Set all the slots to their initial value."""
         for slot in self.slots.values():

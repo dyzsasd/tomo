@@ -71,7 +71,8 @@ async def main():
             if bot_message.elements:
                 print("Bot sent elements:")
                 for element in bot_message.elements:
-                    print(f"- {element.get('title', '')}: {element.get('subtitle', '')}")
+                    print(
+                        f"- {element.get('title', '')}: {element.get('subtitle', '')}")
             # Handle other message types as needed
 
         # Clear the messages after processing

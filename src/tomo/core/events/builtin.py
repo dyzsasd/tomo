@@ -132,7 +132,7 @@ class ActionExecuted(Event):
 class ActionFailed(Event):
     action_name: str
     policy: typing.Optional[typing.Text] = None
-    
+
     def apply_to(self, session: "Session") -> None:
         # TODO: thinking about how to handle the failed action
         pass
@@ -153,6 +153,7 @@ class SessionStarted(Event):
             session: The session that will be reset.
         """
         session.reset()
+
 
 class SessionDisabled(Event):
     """

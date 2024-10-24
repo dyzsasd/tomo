@@ -38,7 +38,6 @@ class InMemorySession(Session):
             return persisted_sesson
         else:
             return self
-            
 
     async def update_with_events(
         self,
@@ -105,7 +104,7 @@ class InMemorySessionManager:
         """
         if session_id in self.sessions:
             del self.sessions[session_id]
-    
+
     async def save(self, session: Session) -> Session:
         self.sessions[session.session_id] = session
         return session

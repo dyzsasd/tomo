@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class EventVerbosity(Enum):
     """Filter on which events to include in session dumps."""
-    
+
     # no events will be included
     NONE = 1
 

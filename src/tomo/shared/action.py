@@ -31,7 +31,7 @@ class Action(abc.ABC, JSONSerializableBase):
 
 class DummyAction(Action):
     name = "dummy"
-    
+
     async def run(self, output_channel: OutputChannel, session: Session) -> typing.Optional[typing.List[Event]]:
         logger.info("Executing dummy action")
         return []
