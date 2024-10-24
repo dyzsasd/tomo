@@ -131,7 +131,7 @@ class CollectingOutputChannel(OutputChannel):
         """Save the message to the message list."""
         self.messages.append(message)
 
-    async def send_text_message(self, recipient_id: Text, text: Text, **kwargs: Any) -> None:
+    async def send_text_message(self, text: Text, recipient_id: Text = None, **kwargs: Any) -> None:
         """Send a text message and persist it."""
         for message_part in text.strip().split("\n\n"):
             message = self._create_message(

@@ -58,8 +58,11 @@ class ActionExtractSlots(Action):
 
 class ActionSessionStart(Action):
     name = "session_start"
+    greeting_message: typing.Text
     async def run(self, output_channel: OutputChannel, nlg: NaturalLanguageGenerator, session: Session) -> typing.Optional[typing.List[Event]]:
-        pass
+        await output_channel.send_text_message(self.greeting_message)
+        # TODO: return bot uttered event
+        return []
 
     def event_for_successful_execution(self, policy: PolicyPrediction) -> typing.List[Event]:
         pass

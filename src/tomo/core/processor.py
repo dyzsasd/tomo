@@ -149,8 +149,7 @@ class MessageProcessor:
                 f"Starting a new session for session ID '{session.session_id}'."
             )
 
-            action_session_start = Action.action_for_name_or_text(
-                ActionSessionStart, self.action_executor)
+            action_session_start = ActionSessionStart("Hi, I'm your assistant Tomo")
 
             events = await self._run_action(
                 action=action_session_start,
