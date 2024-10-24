@@ -24,5 +24,11 @@ class TomoException(Exception):
 class TomoCoreException(TomoException):
     """Basic exception for errors raised by Tomo Core."""
 
+
 class TomoFatalException(TomoCoreException):
     """Exception which cannot be recovered."""
+
+
+class BadParameter(TomoFatalException):
+    """Exception which cannot be recovered."""
+

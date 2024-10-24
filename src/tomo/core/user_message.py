@@ -2,11 +2,10 @@ import uuid
 from typing import Optional, Text, Dict, Any
 
 from tomo.shared.constants import DEFAULT_SESSION_ID
-from tomo.shared.utils.json_meta import JSONSerializableMeta
 
 from .output_channels import OutputChannel, CollectingOutputChannel
 
-class UserMessage(metaclass=JSONSerializableMeta):
+class UserMessage():
     """Represents an incoming message, including the channel for sending responses."""
 
     def __init__(

@@ -1,9 +1,8 @@
 import typing
 import dataclasses
 
-from tomo.shared.utils.json_meta import JSONSerializableMeta
 
-class BotMessage(metaclass=JSONSerializableMeta):
+class BotMessage():
     recipient_id: typing.Text
     text: typing.Optional[str] = None
     quick_replies: typing.Optional[typing.List[typing.Dict[str, typing.Any]]] = None

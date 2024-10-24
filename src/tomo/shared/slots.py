@@ -1,6 +1,9 @@
 import abc
 
+from .utils.json import json_serializable, JsonFormat
 
+
+@json_serializable
 class Slot(abc.ABC):
     """
     Represents a key-value pair to store context or information extracted from the user

@@ -1,13 +1,14 @@
-from pydantic import BaseModel, Field
-from typing import List, Optional
+from pydantic import BaseModel
 
-from .utils.json_meta import JSONSerializableMeta
+from .utils.json import json_serializable
 
-
-class Entity(BaseModel, metadata=JSONSerializableMeta):
+@json_serializable
+class Entity(BaseModel):
     name: str
     value: str
 
+
+@json_serializable
 class Intent(BaseModel):
     name: str
     description: str

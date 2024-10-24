@@ -7,13 +7,14 @@ import typing
 
 from .nlu import Entity
 from .nlu import Intent
-from .utils.json_meta import JSONSerializableMeta
+
+from .utils.json import JSONSerializableBase
 
 if typing.TYPE_CHECKING:
     from .sessions import Session  # Forward declaration for Event
 
 
-class Event(abc.ABC, metaclass=JSONSerializableMeta):
+class Event(abc.ABC, JSONSerializableBase):
     """
     Base class for events that occur during a session.
 

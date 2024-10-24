@@ -21,17 +21,19 @@ from .constants import ACTION_LISTEN_NAME
 from .constants import ACTION_NAME
 from .constants import ACTION_TEXT
 from .constants import FOLLOWUP_ACTION
+from .exceptions import BadParameter
 from .events import ActionExecuted
 from .events import BotUttered
 from .events import UserUttered
 from .slots import Slot
-from .utils.json_meta import JSONSerializableMeta
+from .utils.json import JsonFormat
 
 if TYPE_CHECKING:
     from .events import Event  # Forward declaration for Event
+    from tomo.core.actions.actions import Action
 
 
-logger = logging(__name__)
+logger = logging.getLogger(__name__)
 
 
 class EventVerbosity(Enum):
@@ -44,7 +46,7 @@ class EventVerbosity(Enum):
     ALL = 2
 
 
-class Session(metaclass=JSONSerializableMeta):
+class Session():
     """
     This class tracks the state of a conversation for a particular session.
     It stores information such as intents, entities, and user messages.
@@ -59,21 +61,59 @@ class Session(metaclass=JSONSerializableMeta):
             max_event_history: Maximum number of events to store in history.
         """
         self.session_id = session_id
-        self.events: Deque[Event] = deque(maxlen=max_event_history)
+        self.max_event_history = max_event_history
+        self.events: Deque["Event"] = deque(maxlen=max_event_history)
         self.slots: Dict[str, Slot] = {}
 
         self.followup_action: Optional[Text] = ACTION_LISTEN_NAME
         self.latest_action: Optional[Dict[Text, Text]] = None
         # Stores the most recent message sent by the user
-        self.latest_message: Optional[UserUttered] = None
-        self.latest_bot_utterance: Optional[BotUttered] = None
+        self.latest_message: Optional[Text] = None
+        self.latest_bot_utterance: Optional[Text] = None
         self.active = True
         self._reset()
 
+    def to_dict(self):
+        return {
+            "session_id": self.session_id,
+            "max_event_history": self.max_event_history,
+            "events": [JsonFormat.to_json(event) for event in self.events],
+            "slots": {key: JsonFormat.to_json(slot) for key, slot in self.slots.items()},
+            "followup_action": self.followup_action,
+            "latest_action": self.latest_action,
+            "latest_message": self.latest_message,
+            "latest_bot_utterance": self.latest_bot_utterance,
+            "active": self.active,
+        }
+    
+    @classmethod
+    def from_dict(cls, data: dict):
+        session_id = data.get("session_id")
+        if session_id is None:
+            raise BadParameter("session id is missing, cannot read the session from dict")
+        session = Session(session_id)
+
+        session.max_event_history = data.get("max_event_history")
+        session.events = deque(maxlen=session.max_event_history)
+        for event in data.get("events", []):
+            session.events.append(JsonFormat.from_json(event))
+
+        session.slots = {
+            key: JsonFormat.from_json(slot)
+            for key, slot in data.get("slots", {}).items()
+        }
+        session.followup_action = data.get("followup_action")
+        session.latest_action = data.get("latest_action")
+        session.latest_message = data.get("latest_message")
+        session.latest_bot_utterance = data.get("latest_bot_utterance")
+        session.active = data.get("active", True)
+        
+        return session
+
     def copy(self) -> "Session":
         # TODO: avoid using seriliazation and deserialization
-        js_object = self.to_json()
-        _session = Session.from_json(js_object)
+        js_object = self.to_dict()
+        _session = Session.from_dict(js_object)
         return _session
 
     def _reset(self) -> None:
@@ -97,7 +137,7 @@ class Session(metaclass=JSONSerializableMeta):
 
     def _events_for_verbosity(
         self, event_verbosity: EventVerbosity
-    ) -> Optional[List[Event]]:
+    ) -> Optional[List["Event"]]:
         if event_verbosity == EventVerbosity.ALL:
             return list(self.events)
         
@@ -214,7 +254,7 @@ class Session(metaclass=JSONSerializableMeta):
         for event in self.events:
             event.apply_to(self)
 
-    def update_with_event(self, event: Event) -> None:
+    def update_with_event(self, event: "Event") -> None:
         """
         Add a new event to the session's event history and update the session state.
 
@@ -226,7 +266,7 @@ class Session(metaclass=JSONSerializableMeta):
 
     def update_with_events(
         self,
-        new_events: List[Event],
+        new_events: List["Event"],
         override_timestamp: bool = True,
     ) -> None:
         """Adds multiple events to the session.
@@ -282,7 +322,7 @@ class Session(metaclass=JSONSerializableMeta):
         event_type: Union[Type["EventTypeAlias"], Tuple[Type["EventTypeAlias"], ...]],
         action_names_to_exclude: Optional[List[Text]] = None,
         skip: int = 0,
-        event_verbosity: EventVerbosity = EventVerbosity.APPLIED,
+        event_verbosity: EventVerbosity = EventVerbosity.ALL,
     ) -> Optional["EventTypeAlias"]:
         """Gets the last event of a given type which was actually applied.
 
@@ -299,7 +339,7 @@ class Session(metaclass=JSONSerializableMeta):
         """
         to_exclude = action_names_to_exclude or []
 
-        def filter_function(e: Event) -> bool:
+        def filter_function(e: "Event") -> bool:
             has_instance = isinstance(e, event_type)
             excluded = isinstance(e, ActionExecuted) and e.action_name in to_exclude
             return has_instance and not excluded
@@ -320,19 +360,15 @@ class SessionManager(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def update_session(self, session_id: str, event: Event) -> None:
+    async def get_session(self, session_id: str) -> Optional[Session]:
         pass
 
     @abc.abstractmethod
-    def get_session(self, session_id: str) -> Optional[Session]:
+    async def delete_session(self, session_id: str) -> None:
         pass
 
     @abc.abstractmethod
-    def delete_session(self, session_id: str) -> None:
-        pass
-
-    @abc.abstractmethod
-    def save(self, session: str) -> None:
+    async def save(self, session: str) -> None:
         pass
 
 
@@ -345,7 +381,7 @@ class InMemorySessionManager:
         """Initialize an empty dictionary to store active sessions."""
         self.sessions: Dict[str, Session] = {}
 
-    def get_or_create_session(self, session_id: str, max_event_history: Optional[int] = None) -> Session:
+    async def get_or_create_session(self, session_id: str, max_event_history: Optional[int] = None) -> Session:
         """
         Retrieve an existing session or create a new one if it doesn't exist.
 
@@ -361,18 +397,7 @@ class InMemorySessionManager:
             self.sessions[session_id] = session
         return self.sessions[session_id]
 
-    def update_session(self, session_id: str, event: Event) -> None:
-        """
-        Update the session with a new event.
-
-        Args:
-            session_id: The session ID to update.
-            event: The event to update the session with (e.g., user message).
-        """
-        session = self.get_or_create_session(session_id)
-        session.update_with_event(event)
-
-    def get_session(self, session_id: str) -> Optional[Session]:
+    async def get_session(self, session_id: str) -> Optional[Session]:
         """
         Retrieve a session by its session ID.
 
@@ -384,7 +409,7 @@ class InMemorySessionManager:
         """
         return self.sessions.get(session_id)
 
-    def delete_session(self, session_id: str) -> None:
+    async def delete_session(self, session_id: str) -> None:
         """
         Remove a session from the session manager.
 
@@ -394,5 +419,5 @@ class InMemorySessionManager:
         if session_id in self.sessions:
             del self.sessions[session_id]
     
-    def save(self, session: Session) -> None:
+    async def save(self, session: Session) -> None:
         self.sessions[session.session_id] = session

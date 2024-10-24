@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import time
 import typing
 
 from tomo.core.actions.actions import Action
@@ -43,13 +44,18 @@ class MessageProcessor:
  
         except Exception:
             logger.exception(
-                f"Encountered an exception while running action '{action.name()}'."
+                f"Encountered an exception while running action '{action.name}'."
                 "Bot will continue, but the actions events are lost. "
                 "Please check the logs of your action server for "
                 "more information."
             )
             events = [
-                ActionFailed(action.name(), policy_name)
+                ActionFailed(
+                    action_name=action.name,
+                    policy=policy_name,
+                    timestamp=time.time(),
+                    metadata=None,
+                )
             ]
 
         return events
@@ -61,7 +67,7 @@ class MessageProcessor:
         policy_manager: PolicyManager,
         action_exector: typing.Optional[ActionExector] = None,
         max_number_of_predictions: int = MAX_NUMBER_OF_PREDICTIONS,
-        on_circuit_break: typing.Optional[typing.LambdaType] = None,
+        on_circuit_break: typing.Optional[typing.Callable] = None,
         nlu_parser: typing.Optional[NLUParser] = None,
         session_expiration: int = 86400 * 3  # three days in second
     ) -> None:
@@ -83,7 +89,7 @@ class MessageProcessor:
         1. Get the session and update the session with UserUttered event
         2. Run prediction and actions according to user's message until listen to user action.
         """
-        session: Session = await self.log_message(message, should_save_session=False)
+        session: Session = await self.log_message(message)
 
         await self._run_prediction_loop(message.output_channel, session.session_id)
 
@@ -103,9 +109,7 @@ class MessageProcessor:
         4. Save the update session with session manager.
 
         """
-        session: Session = await self.get_session(
-            message.session_id, message.output_channel, message.metadata
-        )
+        session: Session = await self.get_session(message.session_id, message.output_channel)
 
         await self._handle_message_with_session(message, session)
         
@@ -113,7 +117,7 @@ class MessageProcessor:
             ActionExtractSlots.name, self.action_executor
         )
 
-        events = self._run_action(action_extract_slots, session, message.output_channel, self.nlg, None)
+        events = await self._run_action(action_extract_slots, session, message.output_channel, self.nlg, None)
         session.update_with_events(events)
 
         await self.save_session(session)
@@ -137,7 +141,7 @@ class MessageProcessor:
         Returns:
               session for `session_id`.
         """
-        session: Session = await self.session_manager.get_or_create_session(session_id, append_action_listen=False)
+        session: Session = await self.session_manager.get_or_create_session(session_id, max_event_history=None)
 
         # if the session is new created, which means event list is empty, then session start action should be executed
         if (not session.events) and session.active:
@@ -150,7 +154,7 @@ class MessageProcessor:
 
             events = await self._run_action(
                 action=action_session_start,
-                tracker=session,
+                session=session,
                 output_channel=output_channel,
                 nlg=self.nlg,
                 policy_name=None,
@@ -165,19 +169,19 @@ class MessageProcessor:
         if message.parse_data:
             parse_data = message.parse_data
         else:
-            parse_data = await self.parse_message(message, session)
+            parse_data = await self.nlu_parser.parse(message, session)
 
         # don't ever directly mutate the tracker
         # - instead pass its events to log
         session.update_with_event(
             UserUttered(
-                message.text,
-                parse_data["intent"],
-                parse_data["entities"],
-                parse_data,
-                input_channel=message.input_channel,
                 message_id=message.message_id,
-                metadata=message.metadata,
+                text=message.text,
+                input_channel=message.input_channel,
+                intent=parse_data["intent"],
+                entities=parse_data["entities"],
+                timestamp=time.time(),
+                metadata=None,
             ),
         )
 
@@ -206,6 +210,8 @@ class MessageProcessor:
         
         continue_loop = True
         while continue_loop:
+            # TODO: Add lock
+            session = await self.session_manager.get_session(session_id)
             tasks: typing.List[asyncio.Task] = []
             loop_continue_tests: typing.List[asyncio.Task] = []
             async for prediction in self.policy_manager.run(session):
@@ -219,10 +225,8 @@ class MessageProcessor:
                 for _event in _events
             ]
 
-            # TODO: Add lock
-            session = self.session_manager.get_session(session_id)
             session.update_with_events(events)
-            self.save_session(session)
+            await self.save_session(session)
 
             continue_loop = all(loop_continue_tests) and len(events) > 0
         
