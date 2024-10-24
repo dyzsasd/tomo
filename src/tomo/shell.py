@@ -1,22 +1,18 @@
 import asyncio
-from typing import Text, Any
 import uuid
 
-from tomo.core.actions.executor import ActionExector
-from tomo.core.bot_message import BotMessage
-from tomo.core.nlg.generator import NaturalLanguageGenerator
-from tomo.core.output_channels import  CollectingOutputChannel
+from tomo.core.output_channels import CollectingOutputChannel
 from tomo.core.policies.manager import EmptyPolicyManager
 from tomo.core.processor import MessageProcessor
+from tomo.core.sessions import InMemorySessionManager
 from tomo.core.user_message import UserMessage
 from tomo.nlu.parser import NLUParser
-from tomo.shared.sessions import InMemorySessionManager
+from tomo.shared.action_executor import ActionExector
 
 
 async def main():
     # Initialize dependencies required by MessageProcessor
     session_manager = InMemorySessionManager()
-    nlg = NaturalLanguageGenerator()
     policy_manager = EmptyPolicyManager()
     action_executor = ActionExector()
     nlu_parser = NLUParser()
@@ -24,7 +20,6 @@ async def main():
     # Initialize the MessageProcessor with required dependencies
     message_processor = MessageProcessor(
         session_manager=session_manager,
-        generator=nlg,
         policy_manager=policy_manager,
         action_exector=action_executor,
         nlu_parser=nlu_parser,

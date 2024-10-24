@@ -1,7 +1,6 @@
 import typing
 
-if typing.TYPE_CHECKING:
-    from tomo.core.actions.actions import Action  # Forward declaration for Action
+from tomo.shared.action import Action
 
 
 # TODO: implement PolicyPrediction
@@ -9,5 +8,5 @@ class PolicyPrediction():
     action_names: typing.List[typing.Text]
 
     @property
-    def actions(self) -> typing.List["Action"]:
+    def actions(self) -> typing.List[Action]:
         pass

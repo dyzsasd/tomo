@@ -2,8 +2,7 @@ import uuid
 from typing import Optional, Text, Dict, Any
 
 from tomo.shared.constants import DEFAULT_SESSION_ID
-
-from .output_channels import OutputChannel, CollectingOutputChannel
+from tomo.shared.output_channel import OutputChannel
 
 class UserMessage():
     """Represents an incoming message, including the channel for sending responses."""
@@ -33,7 +32,7 @@ class UserMessage():
         # Initialize message attributes
         self.text = text.strip() if text else text
         self.message_id = str(message_id) if message_id else uuid.uuid4().hex
-        self.output_channel = output_channel or CollectingOutputChannel()
+        self.output_channel = output_channel
         self.session_id = str(session_id) if session_id else DEFAULT_SESSION_ID
         self.input_channel = input_channel
         self.parse_data = parse_data

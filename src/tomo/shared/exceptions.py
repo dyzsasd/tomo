@@ -1,16 +1,6 @@
 from dataclasses import dataclass
-import json
-from packaging import version
-from typing import Optional, Text
 
-import jsonschema
-from ruamel.yaml.error import (
-    MarkedYAMLError,
-    MarkedYAMLWarning,
-    MarkedYAMLFutureWarning,
-)
-
-from .constants import MINIMUM_COMPATIBLE_VERSION
+from tomo.shared.constants import MINIMUM_COMPATIBLE_VERSION
 
 
 class TomoException(Exception):
@@ -31,4 +21,3 @@ class TomoFatalException(TomoCoreException):
 
 class BadParameter(TomoFatalException):
     """Exception which cannot be recovered."""
-

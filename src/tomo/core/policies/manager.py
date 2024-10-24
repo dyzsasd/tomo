@@ -1,7 +1,7 @@
 import abc
 import typing
 
-from tomo.shared.sessions import Session
+from tomo.shared.session import Session
 
 from .policy import PolicyPrediction
 

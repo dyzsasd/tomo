@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from .utils.json import json_serializable
+from tomo.utils.json import json_serializable
 
 @json_serializable
 class Entity(BaseModel):

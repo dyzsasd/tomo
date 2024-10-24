@@ -4,24 +4,22 @@ import os
 import time
 import typing
 
-from tomo.core.actions.actions import Action
-from tomo.core.actions.actions import ActionDisableSession
-from tomo.core.actions.actions import ActionExtractSlots
-from tomo.core.actions.actions import ActionListen
-from tomo.core.actions.actions import ActionSessionStart
-from tomo.core.actions.executor import ActionExector
-from tomo.core.nlg.generator import NaturalLanguageGenerator
-from tomo.core.output_channels import CollectingOutputChannel
-from tomo.core.output_channels import OutputChannel
+from tomo.core.actions import Action
+from tomo.core.actions import ActionDisableSession
+from tomo.core.actions import ActionExtractSlots
+from tomo.core.actions import ActionListen
+from tomo.core.actions import ActionSessionStart
+from tomo.core.events import ActionFailed
+from tomo.core.events import Event
+from tomo.core.events import UserUttered
+from tomo.core.events import Session
 from tomo.core.policies.manager import PolicyManager
 from tomo.core.policies.policy import PolicyPrediction
 from tomo.core.user_message import UserMessage
 from tomo.nlu.parser import NLUParser
-from tomo.shared.events import ActionFailed
-from tomo.shared.events import Event
-from tomo.shared.events import UserUttered
-from tomo.shared.sessions import Session
-from tomo.shared.sessions import SessionManager
+from tomo.shared.action_executor import ActionExector
+from tomo.shared.output_channel import OutputChannel
+from tomo.shared.session_manager import SessionManager
 from tomo.shared.exceptions import TomoFatalException
 
 
@@ -33,14 +31,14 @@ class MessageProcessor:
     """The message processor is interface for communicating with a bot model."""
 
     async def _run_action(self, action: Action, session: Session, output_channel: OutputChannel, 
-                          nlg: NaturalLanguageGenerator, policy_name: typing.Optional[typing.Text]) -> typing.List[Event]:
+                          policy_name: typing.Optional[typing.Text]) -> typing.List[Event]:
         # events and return values are used to update
         # the session state after an action has been taken
         try:
             # Use temporary session as we might need to discard the policy events in
             # case of a rejection.
             temporary_session = session.copy()
-            events = await action.run(output_channel, nlg, temporary_session)
+            events = await action.run(output_channel, temporary_session)
  
         except Exception:
             logger.exception(
@@ -63,7 +61,6 @@ class MessageProcessor:
     def __init__(
         self,
         session_manager: SessionManager,
-        generator: NaturalLanguageGenerator,
         policy_manager: PolicyManager,
         action_exector: typing.Optional[ActionExector] = None,
         max_number_of_predictions: int = MAX_NUMBER_OF_PREDICTIONS,
@@ -72,7 +69,6 @@ class MessageProcessor:
         session_expiration: int = 86400 * 3  # three days in second
     ) -> None:
         """Initializes a `MessageProcessor`."""
-        self.nlg = generator
         self.session_manager = session_manager
         self.max_number_of_predictions = max_number_of_predictions
         self.on_circuit_break = on_circuit_break
@@ -83,7 +79,7 @@ class MessageProcessor:
 
     async def handle_message(
         self, message: UserMessage
-    ) -> typing.Optional[typing.List[typing.Dict[typing.Text, typing.Any]]]:
+    ) -> None:
         """Handle a single message with this processor.
         
         1. Get the session and update the session with UserUttered event
@@ -93,11 +89,6 @@ class MessageProcessor:
 
         await self._run_prediction_loop(message.output_channel, session.session_id)
 
-        if isinstance(message.output_channel, CollectingOutputChannel):
-            return message.output_channel.messages
-
-        return None
-    
     # save message in session
     async def log_message(self, message: UserMessage) -> Session:
         """Log `message` on session belonging to the message's session_id.
@@ -117,10 +108,8 @@ class MessageProcessor:
             ActionExtractSlots.name, self.action_executor
         )
 
-        events = await self._run_action(action_extract_slots, session, message.output_channel, self.nlg, None)
-        session.update_with_events(events)
-
-        await self.save_session(session)
+        events = await self._run_action(action_extract_slots, session, message.output_channel, None)
+        await session.update_with_events(events)
 
         return session
     
@@ -155,11 +144,10 @@ class MessageProcessor:
                 action=action_session_start,
                 session=session,
                 output_channel=output_channel,
-                nlg=self.nlg,
                 policy_name=None,
             )
 
-            session.update_with_events(events)
+            await session.update_with_events(events)
 
         return session
 
@@ -172,7 +160,7 @@ class MessageProcessor:
 
         # don't ever directly mutate the tracker
         # - instead pass its events to log
-        session.update_with_event(
+        await session.update_with_event(
             UserUttered(
                 message_id=message.message_id,
                 text=message.text,
@@ -224,8 +212,7 @@ class MessageProcessor:
                 for _event in _events
             ]
 
-            session.update_with_events(events)
-            await self.save_session(session)
+            await session.update_with_events(events)
 
             continue_loop = all(loop_continue_tests) and len(events) > 0
         

@@ -2,13 +2,13 @@ from dataclasses import dataclass
 import typing
 import dataclasses
 
-from tomo.shared.utils.json import json_serializable
+from tomo.utils.json import json_serializable
 
 
 @dataclass
 @json_serializable
 class BotMessage():
-    recipient_id: typing.Text
+    recipient_id: typing.Optional[typing.Text]
     text: typing.Optional[str] = None
     quick_replies: typing.Optional[typing.List[typing.Dict[str, typing.Any]]] = None
     buttons: typing.Optional[typing.List[typing.Dict[str, typing.Any]]] = None

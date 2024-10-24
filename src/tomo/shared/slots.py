@@ -1,6 +1,6 @@
 import abc
 
-from .utils.json import json_serializable, JsonFormat
+from tomo.utils.json import json_serializable
 
 
 @json_serializable

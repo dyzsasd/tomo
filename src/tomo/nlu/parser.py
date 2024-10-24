@@ -1,7 +1,7 @@
 # TODO: implement nlu parser
 
 from tomo.core.user_message import UserMessage
-from tomo.shared.sessions import Session
+from tomo.shared.session import Session
 
 
 class NLUParser:
