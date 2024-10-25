@@ -2,7 +2,7 @@ import abc
 import json
 import typing
 
-from tomo.utils.json import JSONSerializableBase
+from tomo.utils.json import JSONSerializableBase, JsonFormat
 
 if typing.TYPE_CHECKING:
     from tomo.shared.session import Session  # Forward declaration for Event
@@ -32,11 +32,10 @@ class Event(abc.ABC, JSONSerializableBase):
         Args:
             session: The session to which the event will be applied.
         """
-        pass
 
     def as_dict(self) -> typing.Dict[str, typing.Any]:
         """Convert the event to a dictionary format for serialization."""
-        return self.to_json()
+        return JsonFormat.to_json(self)
 
     def __eq__(self, other: typing.Any) -> bool:
         """Compare two events for equality based on their dictionary representation."""

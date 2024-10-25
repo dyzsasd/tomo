@@ -1,21 +1,21 @@
 import uuid
-from typing import Optional, Text, Dict, Any
+from typing import Any, Dict, Optional
 
 from tomo.shared.constants import DEFAULT_SESSION_ID
 from tomo.shared.output_channel import OutputChannel
 
 
-class UserMessage():
+class UserMessage:
     """Represents an incoming message, including the channel for sending responses."""
 
     def __init__(
         self,
-        text: Optional[Text] = None,
+        text: Optional[str] = None,
         output_channel: Optional[OutputChannel] = None,
-        session_id: Optional[Text] = None,
-        parse_data: Optional[Dict[Text, Any]] = None,
-        input_channel: Optional[Text] = None,
-        message_id: Optional[Text] = None,
+        session_id: Optional[str] = None,
+        parse_data: Optional[Dict[str, Any]] = None,
+        input_channel: Optional[str] = None,
+        message_id: Optional[str] = None,
         metadata: Optional[Dict] = None,
         **kwargs: Any,
     ) -> None:

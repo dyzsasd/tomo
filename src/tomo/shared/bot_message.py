@@ -1,14 +1,14 @@
-from dataclasses import dataclass
-import typing
 import dataclasses
+import typing
+from dataclasses import dataclass
 
 from tomo.utils.json import json_serializable
 
 
 @dataclass
 @json_serializable
-class BotMessage():
-    recipient_id: typing.Optional[typing.Text]
+class BotMessage:
+    recipient_id: typing.Optional[str]
     text: typing.Optional[str] = None
     quick_replies: typing.Optional[typing.List[typing.Dict[str, typing.Any]]] = None
     buttons: typing.Optional[typing.List[typing.Dict[str, typing.Any]]] = None
@@ -17,4 +17,5 @@ class BotMessage():
     attachment: typing.Optional[str] = None
     elements: typing.Optional[typing.List[typing.Dict[str, typing.Any]]] = None
     additional_properties: typing.Dict[str, typing.Any] = dataclasses.field(
-        default_factory=dict)
+        default_factory=dict
+    )

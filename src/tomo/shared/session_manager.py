@@ -1,7 +1,6 @@
-
 import abc
-from enum import Enum
 import logging
+from enum import Enum
 from typing import Optional
 
 from tomo.shared.session import Session
@@ -21,7 +20,9 @@ class EventVerbosity(Enum):
 
 class SessionManager(abc.ABC):
     @abc.abstractmethod
-    async def get_or_create_session(self, session_id: str, max_event_history: Optional[int] = None) -> Session:
+    async def get_or_create_session(
+        self, session_id: str, max_event_history: Optional[int] = None
+    ) -> Session:
         pass
 
     @abc.abstractmethod

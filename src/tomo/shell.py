@@ -44,7 +44,7 @@ async def main():
             text=user_input,
             output_channel=output_channel,
             session_id=session_id,
-            input_channel="cmdline"
+            input_channel="cmdline",
         )
 
         # Process the message asynchronously
@@ -72,11 +72,13 @@ async def main():
                 print("Bot sent elements:")
                 for element in bot_message.elements:
                     print(
-                        f"- {element.get('title', '')}: {element.get('subtitle', '')}")
+                        f"- {element.get('title', '')}: {element.get('subtitle', '')}"
+                    )
             # Handle other message types as needed
 
         # Clear the messages after processing
         output_channel.messages.clear()
+
 
 if __name__ == "__main__":
     # Run the main coroutine

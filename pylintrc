@@ -443,6 +443,15 @@ disable=raw-checker-failed,
         C0114,  # Missing module docstring
         C0115,  # Missing class docstring
         C0116,  # Missing function or method docstring
+        R0912,  # Too many branches
+        R0913,  # Too many arguments
+        R0917,  # Too many position arguments
+        E0401,  # Unable to import xxxx, sometimes it's due to virtualenv issue
+        W0718,  # Catching too general exception
+        W1203,  # Lazy formatting
+        R0902,  # Too many attribute
+        R0903,  # Too few public methods
+
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option

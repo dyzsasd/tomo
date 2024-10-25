@@ -4,35 +4,37 @@ import os
 import time
 import typing
 
-from tomo.core.actions import Action
-from tomo.core.actions import ActionDisableSession
-from tomo.core.actions import ActionExtractSlots
-from tomo.core.actions import ActionListen
-from tomo.core.actions import ActionSessionStart
-from tomo.core.events import ActionFailed
-from tomo.core.events import Event
-from tomo.core.events import UserUttered
-from tomo.core.events import Session
+from tomo.core.actions import (
+    Action,
+    ActionDisableSession,
+    ActionExtractSlots,
+    ActionListen,
+    ActionSessionStart,
+)
+from tomo.core.events import ActionFailed, Event, Session, UserUttered
 from tomo.core.policies.manager import PolicyManager
 from tomo.core.policies.policy import PolicyPrediction
 from tomo.core.user_message import UserMessage
 from tomo.nlu.parser import NLUParser
 from tomo.shared.action_executor import ActionExector
+from tomo.shared.exceptions import TomoFatalException
 from tomo.shared.output_channel import OutputChannel
 from tomo.shared.session_manager import SessionManager
-from tomo.shared.exceptions import TomoFatalException
-
 
 logger = logging.getLogger(__name__)
-MAX_NUMBER_OF_PREDICTIONS = int(
-    os.environ.get("MAX_NUMBER_OF_PREDICTIONS", "100"))
+MAX_NUMBER_OF_PREDICTIONS = int(os.environ.get("MAX_NUMBER_OF_PREDICTIONS", "100"))
 
 
 class MessageProcessor:
     """The message processor is interface for communicating with a bot model."""
 
-    async def _run_action(self, action: Action, session: Session, output_channel: OutputChannel,
-                          policy_name: typing.Optional[typing.Text]) -> typing.List[Event]:
+    async def _run_action(
+        self,
+        action: Action,
+        session: Session,
+        output_channel: OutputChannel,
+        policy_name: typing.Optional[str],
+    ) -> typing.List[Event]:
         # events and return values are used to update
         # the session state after an action has been taken
         try:
@@ -67,7 +69,7 @@ class MessageProcessor:
         max_number_of_predictions: int = MAX_NUMBER_OF_PREDICTIONS,
         on_circuit_break: typing.Optional[typing.Callable] = None,
         nlu_parser: typing.Optional[NLUParser] = None,
-        session_expiration: int = 86400 * 3  # three days in second
+        session_expiration: int = 86400 * 3,  # three days in second
     ) -> None:
         """Initializes a `MessageProcessor`."""
         self.session_manager = session_manager
@@ -78,9 +80,7 @@ class MessageProcessor:
         self.session_expiration = session_expiration
         self.policy_manager = policy_manager
 
-    async def handle_message(
-        self, message: UserMessage
-    ) -> None:
+    async def handle_message(self, message: UserMessage) -> None:
         """Handle a single message with this processor.
 
         1. Get the session and update the session with UserUttered event
@@ -101,7 +101,9 @@ class MessageProcessor:
         4. Save the update session with session manager.
 
         """
-        session: Session = await self.get_session(message.session_id, message.output_channel)
+        session: Session = await self.get_session(
+            message.session_id, message.output_channel
+        )
 
         await self._handle_message_with_session(message, session)
 
@@ -109,14 +111,16 @@ class MessageProcessor:
             ActionExtractSlots.name, self.action_executor
         )
 
-        events = await self._run_action(action_extract_slots, session, message.output_channel, None)
+        events = await self._run_action(
+            action_extract_slots, session, message.output_channel, None
+        )
         await session.update_with_events(events)
 
         return session
 
     async def get_session(
         self,
-        session_id: typing.Text,
+        session_id: str,
         output_channel: typing.Optional[OutputChannel] = None,
     ) -> Session:
         """Fetches session for `session_id` and updates it.
@@ -131,16 +135,18 @@ class MessageProcessor:
         Returns:
               session for `session_id`.
         """
-        session: Session = await self.session_manager.get_or_create_session(session_id, max_event_history=None)
+        session: Session = await self.session_manager.get_or_create_session(
+            session_id, max_event_history=None
+        )
 
-        # if the session is new created, which means event list is empty, then session start action should be executed
+        # if the session is new created, which means event list is empty, then session start
+        # action should be executed
         if (not session.events) and session.active:
             logger.debug(
                 f"Starting a new session for session ID '{session.session_id}'."
             )
 
-            action_session_start = ActionSessionStart(
-                "Hi, I'm your assistant Tomo")
+            action_session_start = ActionSessionStart("Hi, I'm your assistant Tomo")
 
             events = await self._run_action(
                 action=action_session_start,
@@ -153,7 +159,9 @@ class MessageProcessor:
 
         return session
 
-    async def _handle_message_with_session(self, message: UserMessage, session: Session) -> None:
+    async def _handle_message_with_session(
+        self, message: UserMessage, session: Session
+    ) -> None:
         # ATTENTION: parsed_data is here
         if message.parse_data:
             parse_data = message.parse_data
@@ -187,16 +195,18 @@ class MessageProcessor:
         await self.session_manager.save(session)
 
     # Prediction and action execution
-    async def _run_prediction_loop(self, output_channel: OutputChannel, session_id: typing.Text):
-
+    async def _run_prediction_loop(
+        self, output_channel: OutputChannel, session_id: str
+    ):
         async def _process(prediction: PolicyPrediction):
             # TODO: Add lock
             events = self._handle_prediction_with_session(
-                prediction, output_channel, session_id)
+                prediction, output_channel, session_id
+            )
             return events
 
         async def _should_continue_loop(prediction: PolicyPrediction) -> bool:
-            return not (ActionListen.name in prediction.action_names)
+            return not ActionListen.name in prediction.action_names
 
         continue_loop = True
         while continue_loop:
@@ -207,20 +217,22 @@ class MessageProcessor:
             async for prediction in self.policy_manager.run(session):
                 task = asyncio.create_task(_process(prediction))
                 tasks.append(task)
-                loop_continue_tests.append(asyncio.create_task(
-                    _should_continue_loop(prediction)))
+                loop_continue_tests.append(
+                    asyncio.create_task(_should_continue_loop(prediction))
+                )
             events = await asyncio.gather(*tasks)
-            events = [
-                _event
-                for _events in events
-                for _event in _events
-            ]
+            events = [_event for _events in events for _event in _events]
 
             await session.update_with_events(events)
 
             continue_loop = all(loop_continue_tests) and len(events) > 0
 
-    async def _handle_prediction_with_session(self, prediction: PolicyPrediction, output_channel: OutputChannel, session_id: typing.Text):
+    async def _handle_prediction_with_session(
+        self,
+        prediction: PolicyPrediction,
+        output_channel: OutputChannel,
+        session_id: str,
+    ):
         actions = prediction.actions
         if actions is None or len(actions) == 0:
             return []
@@ -228,21 +240,33 @@ class MessageProcessor:
         session = self.session_manager.get_session(session_id)
         if session is None:
             raise TomoFatalException(
-                "Session cannot be found in processing prediction.")
+                "Session cannot be found in processing prediction."
+            )
 
         if not session.active:
             logger.warning("session is disabled, action execution is skipped.")
             return []
 
-        for action in prediction.actions:
+        # If there is an action to disable the session, run it immediately
+        for action in actions:
             if not isinstance(action, ActionDisableSession):
                 continue
-            events = await self._run_action(action, session, output_channel=output_channel)
+            events = await self._run_action(
+                action,
+                session,
+                output_channel=output_channel,
+                policy_name=prediction.policy_name,
+            )
             return events
 
         events = []
         for action in actions:
-            _events = await self._run_action(action, session, output_channel=output_channel)
+            _events = await self._run_action(
+                action,
+                session,
+                output_channel=output_channel,
+                policy_name=prediction.policy_name,
+            )
             events.extend(_events)
 
         return events

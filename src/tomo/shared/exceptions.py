@@ -1,8 +1,3 @@
-from dataclasses import dataclass
-
-from tomo.shared.constants import MINIMUM_COMPATIBLE_VERSION
-
-
 class TomoException(Exception):
     """Base exception class for all errors raised by Tomo.
 

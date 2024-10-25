@@ -2,8 +2,7 @@
 
 import typing
 
-from tomo.nlu.models import Entity
-from tomo.nlu.models import Intent
+from tomo.nlu.models import Entity, Intent
 from tomo.shared.event import Event
 from tomo.shared.session import Session
 
@@ -44,7 +43,7 @@ class UserUttered(Event):
         session.latest_message = self.text
 
     @property
-    def intent_name(self) -> typing.Optional[typing.Text]:
+    def intent_name(self) -> typing.Optional[str]:
         """
         Returns the intent name or `None` if no intent was detected.
 
@@ -67,7 +66,7 @@ class BotUttered(Event):
         metadata: Additional metadata related to the event.
     """
 
-    text: typing.Optional[typing.Text] = None
+    text: typing.Optional[str] = None
     data: typing.Optional[typing.Dict] = None
 
     def apply_to(self, session: "Session") -> None:
@@ -92,7 +91,7 @@ class SlotSet(Event):
         value: The value to assign to the slot (can be `None` to clear the slot).
     """
 
-    key: typing.Text
+    key: str
     value: typing.Optional[typing.Any] = None
 
     def apply_to(self, session: "Session") -> None:
@@ -117,7 +116,7 @@ class ActionExecuted(Event):
     """
 
     action_name: str
-    policy: typing.Optional[typing.Text] = None
+    policy: typing.Optional[str] = None
 
     def apply_to(self, session: "Session") -> None:
         """
@@ -131,7 +130,7 @@ class ActionExecuted(Event):
 
 class ActionFailed(Event):
     action_name: str
-    policy: typing.Optional[typing.Text] = None
+    policy: typing.Optional[str] = None
 
     def apply_to(self, session: "Session") -> None:
         # TODO: thinking about how to handle the failed action

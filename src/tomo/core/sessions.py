@@ -1,22 +1,22 @@
-
 import logging
 import time
-from typing import Dict
-from typing import List
-from typing import Optional
-
+from typing import Dict, List, Optional
 
 from tomo.shared.event import Event
 from tomo.shared.exceptions import TomoFatalException
 from tomo.shared.session import Session
 from tomo.shared.session_manager import SessionManager
 
-
 logger = logging.getLogger(__name__)
 
 
 class InMemorySession(Session):
-    def __init__(self, session_manager: SessionManager, session_id: str, max_event_history: Optional[int] = None) -> None:
+    def __init__(
+        self,
+        session_manager: SessionManager,
+        session_id: str,
+        max_event_history: Optional[int] = None,
+    ) -> None:
         super().__init__(session_id=session_id, max_event_history=max_event_history)
         self.session_manager: SessionManager = session_manager
 
@@ -29,15 +29,15 @@ class InMemorySession(Session):
         """
         if getattr(self, "session_manager") is None:
             raise TomoFatalException(
-                "session_manager isn't defined in this instance, event cannot be applied.")
+                "session_manager isn't defined in this instance, event cannot be applied."
+            )
 
         event.apply_to(self)
         self.events.append(event)
         if immediate_persist:
             persisted_sesson = await self.session_manager.save(self)
             return persisted_sesson
-        else:
-            return self
+        return self
 
     async def update_with_events(
         self,
@@ -47,7 +47,8 @@ class InMemorySession(Session):
         # TODO: add lock mecanism in update event and update events for saving session object.
         if getattr(self, "session_manager") is None:
             raise TomoFatalException(
-                "session_manager isn't defined in this instance, event cannot be applied.")
+                "session_manager isn't defined in this instance, event cannot be applied."
+            )
 
         for e in new_events:
             if override_timestamp:
@@ -67,7 +68,9 @@ class InMemorySessionManager:
         """Initialize an empty dictionary to store active sessions."""
         self.sessions: Dict[str, Session] = {}
 
-    async def get_or_create_session(self, session_id: str, max_event_history: Optional[int] = None) -> Session:
+    async def get_or_create_session(
+        self, session_id: str, max_event_history: Optional[int] = None
+    ) -> Session:
         """
         Retrieve an existing session or create a new one if it doesn't exist.
 
