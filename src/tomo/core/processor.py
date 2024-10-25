@@ -80,6 +80,12 @@ class MessageProcessor:
         self.session_expiration = session_expiration
         self.policy_manager = policy_manager
 
+    async def start_new_session(
+        self, session_id: str, output_channel: typing.Optional[OutputChannel]
+    ) -> Session:
+        session = await self.get_session(session_id, output_channel=output_channel)
+        return session
+
     async def handle_message(self, message: UserMessage) -> None:
         """Handle a single message with this processor.
 

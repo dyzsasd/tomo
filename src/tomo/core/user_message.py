@@ -1,18 +1,26 @@
+import abc
 import uuid
 from typing import Any, Dict, Optional
 
-from tomo.shared.constants import DEFAULT_SESSION_ID
 from tomo.shared.output_channel import OutputChannel
 
 
-class UserMessage:
+class UserMessage(abc.ABC):
+    """Represents an incoming message, including the channel for sending responses."""
+
+    def __init__(self, session_id: str, output_channel: Optional[OutputChannel]):
+        self.session_id = session_id
+        self.output_channel = output_channel
+
+
+class TextUserMessage(UserMessage):
     """Represents an incoming message, including the channel for sending responses."""
 
     def __init__(
         self,
-        text: Optional[str] = None,
-        output_channel: Optional[OutputChannel] = None,
         session_id: Optional[str] = None,
+        output_channel: OutputChannel = None,
+        text: Optional[str] = None,
         parse_data: Optional[Dict[str, Any]] = None,
         input_channel: Optional[str] = None,
         message_id: Optional[str] = None,
@@ -30,11 +38,10 @@ class UserMessage:
             message_id: ID of the message (auto-generated if not provided).
             metadata: additional metadata for this message.
         """
+        super().__init__(session_id, output_channel)
         # Initialize message attributes
         self.text = text.strip() if text else text
         self.message_id = str(message_id) if message_id else uuid.uuid4().hex
-        self.output_channel = output_channel
-        self.session_id = str(session_id) if session_id else DEFAULT_SESSION_ID
         self.input_channel = input_channel
         self.parse_data = parse_data
         self.metadata = metadata
