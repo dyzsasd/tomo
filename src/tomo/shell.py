@@ -1,6 +1,9 @@
 import asyncio
 import uuid
 import logging
+import os
+
+from dotenv import load_dotenv
 
 from tomo.core.output_channels import CollectingOutputChannel
 from tomo.core.policies.manager import EmptyPolicyManager
@@ -11,6 +14,12 @@ from tomo.nlu.parser import NLUParser
 from tomo.shared.action_executor import ActionExector
 
 
+# Load environment variables from .env file
+load_dotenv()
+
+# Now you can access the OpenAI API key as an environment variable
+api_key = os.getenv("OPENAI_API_KEY")
+
 # Configure logging
 logging.basicConfig(
     level=logging.DEBUG,  # Set logging level to DEBUG
@@ -18,12 +27,28 @@ logging.basicConfig(
 )
 
 
+nlu_config = {
+    "llm_type": "openai",
+    "llm_params": {"model_name": "gpt-3.5-turbo", "temperature": 0.0},
+    "intents": [
+        "greet: The user want to say hello and ask some information with the robot",
+        "weather: The user want to know the weather information of same where",
+        "find_flight: The user want to find the flight for their trip",
+    ],
+    "entities": [
+        "weather_place: the city where the user want to find the weather information",
+        "origin: the city where the user lives.",
+        "destination: the place that the user want travel to",
+    ],
+}
+
+
 async def main():
     # Initialize dependencies required by MessageProcessor
     session_manager = InMemorySessionManager()
     policy_manager = EmptyPolicyManager()
     action_executor = ActionExector()
-    nlu_parser = NLUParser()
+    nlu_parser = NLUParser(config=nlu_config)
 
     # Initialize the MessageProcessor with required dependencies
     message_processor = MessageProcessor(

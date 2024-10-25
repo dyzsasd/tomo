@@ -9,6 +9,9 @@ __pycache__/
 .venv/
 .env/
 
+# Credentials
+.env
+
 # Poetry specific files
 poetry.lock
 .cache/
