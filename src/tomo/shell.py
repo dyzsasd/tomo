@@ -1,5 +1,6 @@
 import asyncio
 import uuid
+import logging
 
 from tomo.core.output_channels import CollectingOutputChannel
 from tomo.core.policies.manager import EmptyPolicyManager
@@ -8,6 +9,13 @@ from tomo.core.sessions import InMemorySessionManager
 from tomo.core.user_message import TextUserMessage
 from tomo.nlu.parser import NLUParser
 from tomo.shared.action_executor import ActionExector
+
+
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG,  # Set logging level to DEBUG
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",  # Define log format
+)
 
 
 async def main():
@@ -28,8 +36,7 @@ async def main():
     session_id = uuid.uuid4().hex
     output_channel = CollectingOutputChannel()
 
-    session = await message_processor.start_new_session(session_id, output_channel)
-    print(session.events)
+    await message_processor.start_new_session(session_id, output_channel)
 
     print("Welcome to the bot shell. Type 'quit' or 'exit' to end the conversation.")
 
