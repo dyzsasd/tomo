@@ -2,10 +2,12 @@ import logging
 import time
 from typing import Dict, List, Optional
 
+from tomo.core.events import UserUttered
 from tomo.shared.event import Event
 from tomo.shared.exceptions import TomoFatalException
 from tomo.shared.session import Session
 from tomo.shared.session_manager import SessionManager
+
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +36,7 @@ class InMemorySession(Session):
 
         event.apply_to(self)
         self.events.append(event)
+        logger.debug(f"Event {event.__class__} has been applied.")
         if immediate_persist:
             persisted_sesson = await self.session_manager.save(self)
             return persisted_sesson
@@ -57,6 +60,12 @@ class InMemorySession(Session):
 
         persisted_sesson = await self.session_manager.save(self)
         return persisted_sesson
+
+    def last_user_uttered_event(self) -> Optional["Event"]:
+        for event in reversed(self.events):
+            if isinstance(event, UserUttered):
+                return event
+        return None
 
 
 class InMemorySessionManager:

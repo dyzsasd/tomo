@@ -2,7 +2,7 @@ import abc
 import logging
 from collections import deque
 from copy import deepcopy
-from typing import TYPE_CHECKING, Deque, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Deque, Dict, List, Optional
 
 from tomo.shared.constants import ACTION_LISTEN_NAME
 from tomo.shared.exceptions import BadParameter
@@ -87,7 +87,7 @@ class Session(abc.ABC):
         return session
 
     def copy(self) -> "Session":
-        deepcopy(self)
+        return deepcopy(self)
 
     def _reset(self) -> None:
         """
@@ -133,3 +133,14 @@ class Session(abc.ABC):
         """Set all the slots to their initial value."""
         for slot in self.slots.values():
             slot.reset()
+
+    def set_slot(self, key: str, value: Any) -> None:
+        slot: Slot = self.slots.get(key)
+        if slot is None:
+            logger.error("Slot setting failed, cannot find slot {key} from session.")
+            return
+        slot.set_value(value)
+
+    @abc.abstractmethod
+    def last_user_uttered_event(self) -> Optional["Event"]:
+        pass

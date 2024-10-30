@@ -113,9 +113,7 @@ class MessageProcessor:
 
         await self._handle_message_with_session(message, session)
 
-        action_extract_slots: Action = Action.action_for_name_or_text(
-            ActionExtractSlots.name, self.action_executor
-        )
+        action_extract_slots: Action = ActionExtractSlots()
 
         events = await self._run_action(
             action_extract_slots, session, message.output_channel, None
@@ -134,7 +132,7 @@ class MessageProcessor:
         If a new session is created, `action_session_start` is run.
 
         Args:
-            session_id: Conversation ID for which to fetch the tracker.
+            session_id: Conversation ID for which to fetch the session.
             output_channel: Output channel associated with the incoming user message.
             metadata: Data sent from client associated with the incoming user message.
 
@@ -174,7 +172,7 @@ class MessageProcessor:
         else:
             parse_data = await self.nlu_parser.parse(message, session)
 
-        # don't ever directly mutate the tracker
+        # don't ever directly mutate the session
         # - instead pass its events to log
         await session.update_with_event(
             UserUttered(
@@ -185,18 +183,18 @@ class MessageProcessor:
                 entities=parse_data["entities"],
                 timestamp=time.time(),
                 metadata=None,
-            ),
+            )
         )
 
         logger.debug(
-            f"Logged UserUtterance - tracker now has {len(session.events)} events."
+            f"Logged UserUtterance - session now has {len(session.events)} events."
         )
 
     async def save_session(self, session: Session) -> None:
-        """Save the given tracker to the tracker store.
+        """Save the given session to the session store.
 
         Args:
-            tracker: Tracker to be saved.
+            session: session to be saved.
         """
         await self.session_manager.save(session)
 

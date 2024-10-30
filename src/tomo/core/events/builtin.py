@@ -1,10 +1,12 @@
-# src/chatbot_service/event_system/event.py
-
+import logging
 import typing
 
 from tomo.nlu.models import Entity, Intent
 from tomo.shared.event import Event
 from tomo.shared.session import Session
+
+
+logger = logging.getLogger(__name__)
 
 
 class SessionShutdown(Event):
@@ -76,7 +78,7 @@ class BotUttered(Event):
         Args:
             session: The session that will be updated with the bot's utterance.
         """
-        session.latest_bot_utterance = self
+        session.latest_bot_utterance = self.text
 
 
 class SlotSet(Event):
