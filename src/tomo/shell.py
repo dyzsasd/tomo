@@ -6,7 +6,8 @@ import os
 from dotenv import load_dotenv
 
 from tomo.core.output_channels import CollectingOutputChannel
-from tomo.core.policies.manager import EmptyPolicyManager
+from tomo.core.policies.manager import LocalPolicyManager
+from tomo.core.policies.policies import QuickResponsePolicy
 from tomo.core.processor import MessageProcessor
 from tomo.core.sessions import InMemorySessionManager
 from tomo.core.user_message import TextUserMessage
@@ -46,7 +47,13 @@ nlu_config = {
 async def main():
     # Initialize dependencies required by MessageProcessor
     session_manager = InMemorySessionManager()
-    policy_manager = EmptyPolicyManager()
+    policy_manager = LocalPolicyManager(
+        policies=[
+            QuickResponsePolicy(
+                message="Thanks for your requirement, just a minute !", waiting_time=100
+            ),
+        ],
+    )
     action_executor = ActionExector()
     nlu_parser = NLUParser(config=nlu_config)
 

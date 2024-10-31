@@ -13,7 +13,7 @@ from tomo.core.actions import (
 )
 from tomo.core.events import ActionFailed, Event, Session, UserUttered
 from tomo.core.policies.manager import PolicyManager
-from tomo.core.policies.policy import PolicyPrediction
+from tomo.core.policies.models import PolicyPrediction
 from tomo.core.user_message import UserMessage
 from tomo.nlu.parser import NLUParser
 from tomo.shared.action_executor import ActionExector
@@ -79,6 +79,8 @@ class MessageProcessor:
         self.nlu_parser = nlu_parser
         self.session_expiration = session_expiration
         self.policy_manager = policy_manager
+        # TODO: use shared lock system
+        self._session_locks = {}
 
     async def start_new_session(
         self, session_id: str, output_channel: typing.Optional[OutputChannel]
@@ -93,6 +95,7 @@ class MessageProcessor:
         2. Run prediction and actions according to user's message until listen to user action.
         """
         session: Session = await self.log_message(message)
+        logger.debug(f"Session has been updated with user's message: {session}")
 
         await self._run_prediction_loop(message.output_channel, session.session_id)
 
@@ -202,12 +205,20 @@ class MessageProcessor:
     async def _run_prediction_loop(
         self, output_channel: OutputChannel, session_id: str
     ):
+        session_lock = self._session_locks.get(session_id)
+        if session_lock is None:
+            session_lock = asyncio.Lock()
+            self._session_locks[session_id] = session_lock
+
         async def _process(prediction: PolicyPrediction):
-            # TODO: Add lock
-            events = self._handle_prediction_with_session(
-                prediction, output_channel, session_id
-            )
-            return events
+            async with session_lock:
+                session = await self.session_manager.get_session(session_id)
+                logger.debug(f"processing prediction {prediction.action_names}")
+                events = await self._handle_prediction_with_session(
+                    prediction, output_channel, session
+                )
+                await session.update_with_events(events)
+                return events
 
         async def _should_continue_loop(prediction: PolicyPrediction) -> bool:
             return not ActionListen.name in prediction.action_names
@@ -224,24 +235,24 @@ class MessageProcessor:
                 loop_continue_tests.append(
                     asyncio.create_task(_should_continue_loop(prediction))
                 )
-            events = await asyncio.gather(*tasks)
-            events = [_event for _events in events for _event in _events]
 
-            await session.update_with_events(events)
+            await asyncio.gather(*tasks)
+            test_results = await asyncio.gather(*loop_continue_tests)
+            logger.debug(f"test_results is {test_results}")
 
-            continue_loop = all(loop_continue_tests) and len(events) > 0
+            continue_loop = len(test_results) > 0 and all(test_results)
 
     async def _handle_prediction_with_session(
         self,
         prediction: PolicyPrediction,
         output_channel: OutputChannel,
-        session_id: str,
+        session: Session,
     ):
+        logger.debug(f"Processing prediction: {prediction.policy_name}")
         actions = prediction.actions
         if actions is None or len(actions) == 0:
             return []
 
-        session = self.session_manager.get_session(session_id)
         if session is None:
             raise TomoFatalException(
                 "Session cannot be found in processing prediction."

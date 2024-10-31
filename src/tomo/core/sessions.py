@@ -2,7 +2,7 @@ import logging
 import time
 from typing import Dict, List, Optional
 
-from tomo.core.events import UserUttered
+from tomo.core.events import BotUttered, UserUttered
 from tomo.shared.event import Event
 from tomo.shared.exceptions import TomoFatalException
 from tomo.shared.session import Session
@@ -66,6 +66,14 @@ class InMemorySession(Session):
             if isinstance(event, UserUttered):
                 return event
         return None
+
+    def has_bot_replied(self) -> bool:
+        for event in reversed(self.events):
+            if isinstance(event, BotUttered):
+                return True
+            if isinstance(event, UserUttered):
+                return False
+        return False
 
 
 class InMemorySessionManager:

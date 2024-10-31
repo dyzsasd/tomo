@@ -22,6 +22,44 @@ class ActionListen(Action):
         pass
 
 
+class ActionBotUtter(Action):
+    name = "bot_utter"
+    message: str
+
+    async def run(
+        self, output_channel: OutputChannel, session: Session
+    ) -> typing.Optional[typing.List[Event]]:
+        await output_channel.send_text_message(self.message)
+        return [
+            BotUttered(
+                text=self.message,
+                data=None,
+                timestamp=time.time(),
+                metadata=None,
+            )
+        ]
+
+
+class ActionBotUtterQuickReply(ActionBotUtter):
+    name = "bot_utter_quick_reply"
+
+    async def run(
+        self, output_channel: OutputChannel, session: Session
+    ) -> typing.Optional[typing.List[Event]]:
+        if not session.has_bot_replied():
+            await output_channel.send_text_message(self.message)
+            logger.debug(f"Quick {self.message} reply has been sent.")
+            return [
+                BotUttered(
+                    text=self.message,
+                    data=None,
+                    timestamp=time.time(),
+                    metadata=None,
+                )
+            ]
+        return []
+
+
 class ActionExtractSlots(Action):
     name = "extract_slots"
 

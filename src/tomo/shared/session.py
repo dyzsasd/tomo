@@ -144,3 +144,7 @@ class Session(abc.ABC):
     @abc.abstractmethod
     def last_user_uttered_event(self) -> Optional["Event"]:
         pass
+
+    @abc.abstractmethod
+    def has_bot_replied(self) -> bool:
+        pass
