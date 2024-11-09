@@ -451,6 +451,10 @@ disable=raw-checker-failed,
         W1203,  # Lazy formatting
         R0902,  # Too many attribute
         R0903,  # Too few public methods
+        W1514,  # Using open without explicitly specifying an encoding
+        R0914,  # Too many local variables (17/15) (too-many-locals)
+        R0801,  # Similar lines in 2 files
+        E3701,  # Invalid usage of field()
 
 
 # Enable the message, report, category or checker with the given id(s). You can

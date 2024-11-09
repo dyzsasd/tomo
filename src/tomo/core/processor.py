@@ -12,8 +12,8 @@ from tomo.core.actions import (
     ActionSessionStart,
 )
 from tomo.core.events import ActionFailed, Event, Session, UserUttered
-from tomo.core.policies.manager import PolicyManager
-from tomo.core.policies.models import PolicyPrediction
+from tomo.core.policies import PolicyManager
+from tomo.core.policies import PolicyPrediction
 from tomo.core.user_message import UserMessage
 from tomo.nlu.parser import NLUParser
 from tomo.shared.action_executor import ActionExector
@@ -38,10 +38,7 @@ class MessageProcessor:
         # events and return values are used to update
         # the session state after an action has been taken
         try:
-            # Use temporary session as we might need to discard the policy events in
-            # case of a rejection.
-            temporary_session = session.copy()
-            events = await action.run(output_channel, temporary_session)
+            events = await action.run(output_channel, session)
 
         except Exception:
             logger.exception(
@@ -282,6 +279,6 @@ class MessageProcessor:
                 output_channel=output_channel,
                 policy_name=prediction.policy_name,
             )
-            events.extend(_events)
+            events.extend(_events or [])
 
         return events

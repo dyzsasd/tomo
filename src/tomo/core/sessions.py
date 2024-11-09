@@ -1,12 +1,15 @@
+from copy import deepcopy
 import logging
 import time
 from typing import Dict, List, Optional
 
+from tomo.assistant import Assistant
 from tomo.core.events import BotUttered, UserUttered
 from tomo.shared.event import Event
 from tomo.shared.exceptions import TomoFatalException
 from tomo.shared.session import Session
 from tomo.shared.session_manager import SessionManager
+from tomo.shared.slots import Slot
 
 
 logger = logging.getLogger(__name__)
@@ -18,8 +21,11 @@ class InMemorySession(Session):
         session_manager: SessionManager,
         session_id: str,
         max_event_history: Optional[int] = None,
+        slots: Optional[Dict[str, Slot]] = None,
     ) -> None:
-        super().__init__(session_id=session_id, max_event_history=max_event_history)
+        super().__init__(
+            session_id=session_id, max_event_history=max_event_history, slots=slots
+        )
         self.session_manager: SessionManager = session_manager
 
     async def update_with_event(self, event: Event, immediate_persist=True) -> None:
@@ -81,8 +87,9 @@ class InMemorySessionManager:
     A simple in-memory session manager that stores session objects in memory.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, assistant: Assistant) -> None:
         """Initialize an empty dictionary to store active sessions."""
+        self.assistant = assistant
         self.sessions: Dict[str, Session] = {}
 
     async def get_or_create_session(
@@ -99,7 +106,10 @@ class InMemorySessionManager:
             The session object.
         """
         if session_id not in self.sessions:
-            session = InMemorySession(self, session_id, max_event_history)
+            slots = {slot.name: deepcopy(slot) for slot in self.assistant.slots}
+            session = InMemorySession(
+                self, session_id, max_event_history=max_event_history, slots=slots
+            )
             self.sessions[session_id] = session
         return self.sessions[session_id]
 

@@ -23,7 +23,10 @@ class Session(abc.ABC):
     """
 
     def __init__(
-        self, session_id: str, max_event_history: Optional[int] = None
+        self,
+        session_id: str,
+        max_event_history: Optional[int] = None,
+        slots: Optional[Dict[str, Slot]] = None,
     ) -> None:
         """
         Initialize a new session with a unique session ID.
@@ -35,7 +38,7 @@ class Session(abc.ABC):
         self.session_id: str = session_id
         self.max_event_history: int = max_event_history
         self.events: Deque["Event"] = deque(maxlen=max_event_history)
-        self.slots: Dict[str, Slot] = {}
+        self.slots: Dict[str, Slot] = slots or {}
 
         self.followup_action: Optional[str] = ACTION_LISTEN_NAME
         self.latest_action: Optional[Dict[str, str]] = None
@@ -140,6 +143,13 @@ class Session(abc.ABC):
             logger.error("Slot setting failed, cannot find slot {key} from session.")
             return
         slot.set_value(value)
+
+    def unset_slot(self, key: str) -> None:
+        slot: Slot = self.slots.get(key)
+        if slot is None:
+            logger.error("Slot setting failed, cannot find slot {key} from session.")
+            return
+        slot.reset()
 
     @abc.abstractmethod
     def last_user_uttered_event(self) -> Optional["Event"]:

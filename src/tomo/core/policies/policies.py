@@ -1,13 +1,34 @@
 import abc
 import asyncio
+import logging
 from typing import Optional
 
 from tomo.core.actions import ActionBotUtterQuickReply
-from tomo.core.policies.models import PolicyPrediction
 from tomo.shared.session import Session
+
+from .models import PolicyPrediction
+
+
+logger = logging.getLogger(__name__)
 
 
 class Policy(abc.ABC):
+    subclasses = {}
+
+    @classmethod
+    def create(cls, policy_name, **kwargs):
+        """Factory method to create an instance of a subclass by name."""
+        if policy_name not in cls.subclasses:
+            raise ValueError(f"Unknown action: {policy_name}")
+        return cls.subclasses[policy_name](**kwargs)
+
+    def __init_subclass__(cls, **kwargs):
+        """Automatically record each subclass."""
+        super().__init_subclass__(**kwargs)
+        if cls.__name__ in Policy.subclasses:
+            logger.fatal(f"{cls.__name__} exists already.")
+        Policy.subclasses[cls.__name__] = cls  # Store subclass by name
+
     @property
     def name(self):
         return __class__.__name__

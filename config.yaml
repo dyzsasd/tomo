@@ -1,0 +1,49 @@
+assistant:
+  name: Weather Assistant
+
+  intents:
+    - name: greet
+      description: The user want to say hello and ask some information with the robot
+    - name: weather
+      description: The user want to know the weather information of same where",
+    - name: find_flight
+      description: The user want to find the flight for their trip",
+
+  slots:
+    - name: city
+      description: the city where the user want to get the weather information.
+      extractable: true
+      initial_value: paris
+    - name: date
+      description: the date that the user want to know the weather information.
+      extractable: true
+    - name: weather
+      description: the weather information of the city that the user asked.
+      extractable: false
+
+  policies:
+    - policy_type: QuickResponsePolicy
+      message: "Get your request, I'm finding the information for you."
+    - policy_type: LLMPolicy
+      intents:
+        - weather
+      name: weather_assistant_policy
+      scope: |
+        An intelligent routine to determine and execute necessary actions for fulfilling user weather inquiries based on session data.
+      actions:
+        - find_weather
+        - listen
+        - bot_utter
+      llmConfig:
+        llm_type: openai
+        llm_params:
+          model_name: gpt-4o-mini
+          temperature: 0.0
+
+  nlu:
+    nlu_type: LLMNLUParser
+    config:
+      llm_type: openai
+      llm_params:
+        model_name: gpt-4o
+        temperature: 0.0

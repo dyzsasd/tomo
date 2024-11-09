@@ -2,7 +2,6 @@ import abc
 import logging
 import typing
 
-from tomo.shared.action_executor import ActionExector
 from tomo.shared.event import Event
 from tomo.shared.output_channel import OutputChannel
 from tomo.shared.session import Session
@@ -12,16 +11,39 @@ logger = logging.getLogger(__name__)
 
 
 class Action(abc.ABC, JSONSerializableBase):
+    subclasses = {}
+
     @classmethod
-    def action_for_name_or_text(cls, name: str, executor: ActionExector):
-        """ "Create an action instance which can run"""
-        logger.debug(f"getting actions: {name}")
-        logger.debug(f"getting actions: {executor}")
-        return DummyAction()
+    def get_action_cls(cls, action_name):
+        if action_name not in cls.subclasses:
+            raise ValueError(f"Unknown action: {action_name}")
+        return cls.subclasses[action_name]
+
+    @classmethod
+    def create(cls, action_name, **kwargs):
+        return cls.get_action_cls(action_name)(**kwargs)
+
+    def __init_subclass__(cls, **kwargs):
+        """Automatically record each subclass."""
+        super().__init_subclass__(**kwargs)
+        action_name = cls.name
+        if action_name in Action.subclasses:
+            logger.fatal(f"{action_name} exists already.")
+        Action.subclasses[action_name] = cls  # Store subclass by name
 
     @property
+    @abc.abstractmethod
     def name(self):
         pass
+
+    @property
+    @abc.abstractmethod
+    def description(self):
+        pass
+
+    @classmethod
+    def required_slots(cls):
+        return []
 
     @abc.abstractmethod
     async def run(
@@ -32,6 +54,7 @@ class Action(abc.ABC, JSONSerializableBase):
 
 class DummyAction(Action):
     name = "dummy"
+    description = "dummy action for test purpose"
 
     async def run(
         self, output_channel: OutputChannel, session: Session

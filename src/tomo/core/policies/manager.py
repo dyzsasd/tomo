@@ -2,9 +2,10 @@ import abc
 import logging
 import typing
 
-from tomo.core.policies.models import PolicyPrediction
-from tomo.core.policies.policies import Policy
 from tomo.shared.session import Session
+
+from .policies import PolicyPrediction
+from .policies import Policy
 
 
 logger = logging.getLogger(__name__)
