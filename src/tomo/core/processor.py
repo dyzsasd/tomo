@@ -12,8 +12,8 @@ from tomo.core.actions import (
     ActionSessionStart,
 )
 from tomo.core.events import ActionFailed, Event, Session, UserUttered
-from tomo.core.policies.manager import PolicyManager
-from tomo.core.policies.policy import PolicyPrediction
+from tomo.core.policies import PolicyManager
+from tomo.core.policies import PolicyPrediction
 from tomo.core.user_message import UserMessage
 from tomo.nlu.parser import NLUParser
 from tomo.shared.action_executor import ActionExector
@@ -38,10 +38,7 @@ class MessageProcessor:
         # events and return values are used to update
         # the session state after an action has been taken
         try:
-            # Use temporary session as we might need to discard the policy events in
-            # case of a rejection.
-            temporary_session = session.copy()
-            events = await action.run(output_channel, temporary_session)
+            events = await action.run(output_channel, session)
 
         except Exception:
             logger.exception(
@@ -79,6 +76,8 @@ class MessageProcessor:
         self.nlu_parser = nlu_parser
         self.session_expiration = session_expiration
         self.policy_manager = policy_manager
+        # TODO: use shared lock system
+        self._session_locks = {}
 
     async def start_new_session(
         self, session_id: str, output_channel: typing.Optional[OutputChannel]
@@ -93,6 +92,7 @@ class MessageProcessor:
         2. Run prediction and actions according to user's message until listen to user action.
         """
         session: Session = await self.log_message(message)
+        logger.debug(f"Session has been updated with user's message: {session}")
 
         await self._run_prediction_loop(message.output_channel, session.session_id)
 
@@ -113,9 +113,7 @@ class MessageProcessor:
 
         await self._handle_message_with_session(message, session)
 
-        action_extract_slots: Action = Action.action_for_name_or_text(
-            ActionExtractSlots.name, self.action_executor
-        )
+        action_extract_slots: Action = ActionExtractSlots()
 
         events = await self._run_action(
             action_extract_slots, session, message.output_channel, None
@@ -134,7 +132,7 @@ class MessageProcessor:
         If a new session is created, `action_session_start` is run.
 
         Args:
-            session_id: Conversation ID for which to fetch the tracker.
+            session_id: Conversation ID for which to fetch the session.
             output_channel: Output channel associated with the incoming user message.
             metadata: Data sent from client associated with the incoming user message.
 
@@ -174,7 +172,7 @@ class MessageProcessor:
         else:
             parse_data = await self.nlu_parser.parse(message, session)
 
-        # don't ever directly mutate the tracker
+        # don't ever directly mutate the session
         # - instead pass its events to log
         await session.update_with_event(
             UserUttered(
@@ -185,18 +183,18 @@ class MessageProcessor:
                 entities=parse_data["entities"],
                 timestamp=time.time(),
                 metadata=None,
-            ),
+            )
         )
 
         logger.debug(
-            f"Logged UserUtterance - tracker now has {len(session.events)} events."
+            f"Logged UserUtterance - session now has {len(session.events)} events."
         )
 
     async def save_session(self, session: Session) -> None:
-        """Save the given tracker to the tracker store.
+        """Save the given session to the session store.
 
         Args:
-            tracker: Tracker to be saved.
+            session: session to be saved.
         """
         await self.session_manager.save(session)
 
@@ -204,12 +202,20 @@ class MessageProcessor:
     async def _run_prediction_loop(
         self, output_channel: OutputChannel, session_id: str
     ):
+        session_lock = self._session_locks.get(session_id)
+        if session_lock is None:
+            session_lock = asyncio.Lock()
+            self._session_locks[session_id] = session_lock
+
         async def _process(prediction: PolicyPrediction):
-            # TODO: Add lock
-            events = self._handle_prediction_with_session(
-                prediction, output_channel, session_id
-            )
-            return events
+            async with session_lock:
+                session = await self.session_manager.get_session(session_id)
+                logger.debug(f"processing prediction {prediction.action_names}")
+                events = await self._handle_prediction_with_session(
+                    prediction, output_channel, session
+                )
+                await session.update_with_events(events)
+                return events
 
         async def _should_continue_loop(prediction: PolicyPrediction) -> bool:
             return not ActionListen.name in prediction.action_names
@@ -226,24 +232,24 @@ class MessageProcessor:
                 loop_continue_tests.append(
                     asyncio.create_task(_should_continue_loop(prediction))
                 )
-            events = await asyncio.gather(*tasks)
-            events = [_event for _events in events for _event in _events]
 
-            await session.update_with_events(events)
+            await asyncio.gather(*tasks)
+            test_results = await asyncio.gather(*loop_continue_tests)
+            logger.debug(f"test_results is {test_results}")
 
-            continue_loop = all(loop_continue_tests) and len(events) > 0
+            continue_loop = len(test_results) > 0 and all(test_results)
 
     async def _handle_prediction_with_session(
         self,
         prediction: PolicyPrediction,
         output_channel: OutputChannel,
-        session_id: str,
+        session: Session,
     ):
+        logger.debug(f"Processing prediction: {prediction.policy_name}")
         actions = prediction.actions
         if actions is None or len(actions) == 0:
             return []
 
-        session = self.session_manager.get_session(session_id)
         if session is None:
             raise TomoFatalException(
                 "Session cannot be found in processing prediction."
@@ -273,6 +279,6 @@ class MessageProcessor:
                 output_channel=output_channel,
                 policy_name=prediction.policy_name,
             )
-            events.extend(_events)
+            events.extend(_events or [])
 
         return events

@@ -2,7 +2,7 @@ import abc
 import logging
 from collections import deque
 from copy import deepcopy
-from typing import TYPE_CHECKING, Deque, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Deque, Dict, List, Optional
 
 from tomo.shared.constants import ACTION_LISTEN_NAME
 from tomo.shared.exceptions import BadParameter
@@ -23,7 +23,10 @@ class Session(abc.ABC):
     """
 
     def __init__(
-        self, session_id: str, max_event_history: Optional[int] = None
+        self,
+        session_id: str,
+        max_event_history: Optional[int] = None,
+        slots: Optional[Dict[str, Slot]] = None,
     ) -> None:
         """
         Initialize a new session with a unique session ID.
@@ -35,7 +38,7 @@ class Session(abc.ABC):
         self.session_id: str = session_id
         self.max_event_history: int = max_event_history
         self.events: Deque["Event"] = deque(maxlen=max_event_history)
-        self.slots: Dict[str, Slot] = {}
+        self.slots: Dict[str, Slot] = slots or {}
 
         self.followup_action: Optional[str] = ACTION_LISTEN_NAME
         self.latest_action: Optional[Dict[str, str]] = None
@@ -87,7 +90,7 @@ class Session(abc.ABC):
         return session
 
     def copy(self) -> "Session":
-        deepcopy(self)
+        return deepcopy(self)
 
     def _reset(self) -> None:
         """
@@ -133,3 +136,25 @@ class Session(abc.ABC):
         """Set all the slots to their initial value."""
         for slot in self.slots.values():
             slot.reset()
+
+    def set_slot(self, key: str, value: Any) -> None:
+        slot: Slot = self.slots.get(key)
+        if slot is None:
+            logger.error("Slot setting failed, cannot find slot {key} from session.")
+            return
+        slot.set_value(value)
+
+    def unset_slot(self, key: str) -> None:
+        slot: Slot = self.slots.get(key)
+        if slot is None:
+            logger.error("Slot setting failed, cannot find slot {key} from session.")
+            return
+        slot.reset()
+
+    @abc.abstractmethod
+    def last_user_uttered_event(self) -> Optional["Event"]:
+        pass
+
+    @abc.abstractmethod
+    def has_bot_replied(self) -> bool:
+        pass

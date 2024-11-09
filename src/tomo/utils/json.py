@@ -73,5 +73,5 @@ class JSONSerializableBase:
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        json_serializable(cls)
         dataclass(cls)
+        json_serializable(cls)

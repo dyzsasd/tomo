@@ -1,5 +1,10 @@
+# pylint: disable=C0301
+# Line too long
+
+from functools import cached_property
 import logging
-from typing import Any, Dict, Optional
+import textwrap
+from typing import Any, Dict, List, Optional
 
 from langchain.prompts import (
     ChatPromptTemplate,
@@ -11,14 +16,17 @@ from langchain.chat_models import ChatOpenAI, AzureChatOpenAI
 from langchain.llms import LlamaCpp, HuggingFaceHub
 
 from tomo.core.user_message import UserMessage
-from tomo.nlu.models import NLUExtraction, Intent, Entity
+from tomo.nlu.models import NLUExtraction, Entity, IntentExtraction
+from tomo.shared.intent import Intent
 from tomo.shared.session import Session
+from tomo.utils.instruction_builder import slot_instruction
+
 
 logger = logging.getLogger(__name__)
 
 
 class NLUParser:
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, intents: List[Intent], config: Optional[Dict[str, Any]] = None):
         # Load config
         self.config = config or {}
         llm_type = self.config.get("llm_type", "openai")
@@ -36,32 +44,30 @@ class NLUParser:
         else:
             raise ValueError(f"LLM type '{llm_type}' is not supported.")
 
-        self.intents = self.config.get("intents")
-        if not self.intents:
-            raise ValueError("An 'intents' list is required in the config.")
-
-        self.entities = self.config.get("entities")
-        if not self.entities:
-            raise ValueError("An 'entities' list is required in the config.")
+        self.intents = intents
 
         # Define output parser for structured responses
         self.output_parser = SimpleJsonOutputParser(pydantic_object=NLUExtraction)
 
         # Define the system message prompt
-        self.system_prompt = """
-            You are a natural language understanding assistant of chat assistant service called Tomo responsible for analyzing user input, extracting intents, and entities.
+        self.system_prompt = textwrap.dedent(
+            """
+            You are a natural language understanding assistant responsible for analyzing user input, extracting intents, and entities for filling the slots in the conversation session.
 
-            Available intents list: {intents}
-            Available entities list: {entities}
-
+            The extraction should consider the conversation history
             Conversation history:
             {conversation_history}
+
+            The intent should be chosen from this available intents list:
+            {intents}
+
+            Then entities should be extract for filling these session slots, the slot may contains already a value, in this case you need to decide if it should be replaced:
+            {slots}
 
             Please return results in the following format:
             {format_instructions}
         """
-
-        logger.debug(f"System prompt is:\n{self.system_prompt}")
+        )
 
         # Configure prompt and chain
         self.prompt = ChatPromptTemplate.from_messages(
@@ -79,6 +85,18 @@ class NLUParser:
         history = str(session.events)
         return history
 
+    @cached_property
+    def intent_instruction(self):
+        instructions = []
+        for intent in self.intents:
+            items = [
+                f"Intent Name: {intent.name}",
+                f"Description: {intent.description}",
+            ]
+            instructions.append("\n".join(items))
+
+        return "\n\n".join(instructions)
+
     async def parse(self, message: UserMessage, session: Session) -> Dict:
         """Parse a user message to extract intents and entities."""
         logger.debug(f"Processing message: {message.text}")
@@ -89,14 +107,15 @@ class NLUParser:
         # Prepare the inputs for the LLM
         inputs = {
             "user_input": message.text,
-            "intents": ", ".join(self.intents),
-            "entities": ", ".join(self.entities),
+            "intents": self.intent_instruction,
+            "slots": slot_instruction(session, only_extractable=True),
             "conversation_history": conversation_history,
             "format_instructions": self.output_parser.get_format_instructions(),
         }
 
         final_prompt = self.prompt.format_messages(**inputs)
-        logger.debug(f"Prompt sent to LLM: {final_prompt}")
+        logger.debug(f"System message: {final_prompt[0].content}")
+        logger.debug(f"User message: {final_prompt[1].content}")
 
         try:
             # Invoke the LLM chain with the provided inputs
@@ -110,7 +129,7 @@ class NLUParser:
             # Log and return extracted intent and entities
             logger.debug(f"Extracted intent: {intent} with entities: {entities}")
             return {
-                "intent": intent or Intent(**intent),
+                "intent": intent and IntentExtraction(**intent),
                 "entities": [Entity(**entity) for entity in entities or []],
             }
 

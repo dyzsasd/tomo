@@ -1,10 +1,12 @@
-# src/chatbot_service/event_system/event.py
-
+import logging
 import typing
 
-from tomo.nlu.models import Entity, Intent
+from tomo.nlu.models import Entity, IntentExtraction
 from tomo.shared.event import Event
 from tomo.shared.session import Session
+
+
+logger = logging.getLogger(__name__)
 
 
 class SessionShutdown(Event):
@@ -30,7 +32,7 @@ class UserUttered(Event):
     message_id: str
     text: str
     input_channel: str  # TODO: create enum for input channel
-    intent: typing.Optional[Intent] = None
+    intent: typing.Optional[IntentExtraction] = None
     entities: typing.Optional[typing.List[Entity]] = None
 
     def apply_to(self, session: "Session") -> None:
@@ -49,7 +51,8 @@ class UserUttered(Event):
 
         This property is used to access the name of the user's intent.
         """
-        return self.intent or self.intent.name
+        print(f"self.intent: {self.intent}")
+        return self.intent and self.intent.name
 
 
 class BotUttered(Event):
@@ -76,7 +79,7 @@ class BotUttered(Event):
         Args:
             session: The session that will be updated with the bot's utterance.
         """
-        session.latest_bot_utterance = self
+        session.latest_bot_utterance = self.text
 
 
 class SlotSet(Event):
@@ -102,6 +105,29 @@ class SlotSet(Event):
             session: The session where the slot value will be updated.
         """
         session.set_slot(self.key, self.value)
+
+
+class SlotUnset(Event):
+    """
+    Event representing a slot being unset by the user or bot.
+
+    Slots store important information such as user preferences or extracted entities.
+    This event updates the value of a specific slot in the session.
+
+    Args:
+        key: The name of the slot being set.
+    """
+
+    key: str
+
+    def apply_to(self, session: "Session") -> None:
+        """
+        Update the session by setting the specified slot value.
+
+        Args:
+            session: The session where the slot value will be updated.
+        """
+        session.unset_slot(self.key)
 
 
 class ActionExecuted(Event):

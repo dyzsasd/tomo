@@ -1,27 +1,34 @@
-import abc
+from typing import Any, Optional
 
 from tomo.utils.json import json_serializable
 
 
 @json_serializable
-class Slot(abc.ABC):
+class Slot:
     """
     Represents a key-value pair to store context or information extracted from the user
     during the conversation.
     """
 
-    def __init__(self, name: str, initial_value=None, auto_fill: bool = True):
+    def __init__(
+        self,
+        name: str,
+        extractable: bool,
+        initial_value: Optional[Any] = None,
+        description: Optional[str] = None,
+    ):
         """
         Initialize a Slot.
 
         Args:
             name: The name of the slot (key).
             initial_value: The initial value of the slot (optional).
-            auto_fill: If True, the slot will be filled automatically from extracted entities.
+            description: the description
         """
         self.name = name
+        self.extractable = extractable
         self.value = initial_value
-        self.auto_fill = auto_fill
+        self.description = description
 
     def set_value(self, value):
         """
