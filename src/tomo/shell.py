@@ -1,3 +1,4 @@
+import argparse
 import asyncio
 import uuid
 import logging
@@ -50,9 +51,20 @@ def configure_logging():
 configure_logging()
 
 
-async def main():
+def parse_args():
+    parser = argparse.ArgumentParser(description="Bot shell")
+    parser.add_argument(
+        "-c",
+        "--config",
+        default="config.yaml",
+        help="Path to the assistant config file",
+    )
+    return parser.parse_args()
+
+
+async def main(config_path):
     # Step 1: Load the assistant configuration
-    config_loader = AssistantConfigLoader("config.yaml")
+    config_loader = AssistantConfigLoader(config_path)
     assistant_config = config_loader.load()
 
     # Step 2: Initialize the Assistant instance
@@ -132,5 +144,5 @@ async def main():
 
 
 if __name__ == "__main__":
-    # Run the main coroutine
-    asyncio.run(main())
+    args = parse_args()
+    asyncio.run(main(args.config))

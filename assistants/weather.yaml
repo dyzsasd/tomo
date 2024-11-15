@@ -22,19 +22,19 @@ assistant:
       extractable: false
 
   policies:
-    - policy_type: QuickResponsePolicy
-      message: "Get your request, I'm finding the information for you."
-    - policy_type: LLMPolicy
+    # - policy_type: QuickResponsePolicy
+    #   message: "Get your request, I'm finding the information for you."
+    - policy_type: StandardLLMPolicy
       intents:
         - weather
       name: weather_assistant_policy
       scope: |
-        An intelligent routine to determine and execute necessary actions for fulfilling user weather inquiries based on session data.
+        A policy to determine and execute necessary actions for fulfilling user weather inquiries based on session data.
       actions:
         - find_weather
         - listen
         - bot_utter
-      llmConfig:
+      llm_config:
         llm_type: openai
         llm_params:
           model_name: gpt-4o-mini
@@ -46,4 +46,4 @@ assistant:
       llm_type: openai
       llm_params:
         model_name: gpt-4o
-        temperature: 0.0
+        temperature: 1.0

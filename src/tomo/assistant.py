@@ -32,6 +32,10 @@ class Assistant:
     def create_nlu_parser(self, nlu_config: NLUConfig):
         config = nlu_config.config or {}
         if nlu_config.nlu_type == "LLMNLUParser":
-            return NLUParser(intents=self.config.intents, config=config)
+            return NLUParser(
+                intents=self.config.intents,
+                config=config,
+                local_test=nlu_config.local_test,
+            )
         logger.warning(f"Unknown NLU parser type: {nlu_config.nlu_type}")
         return None

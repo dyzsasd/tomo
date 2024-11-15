@@ -1,0 +1,178 @@
+assistant:
+  name: Flight Agent Assistant
+
+  intents:
+    - name: exchange_flight_ticket
+      description: The user wants to change their flight ticket or modify their itinerary.
+
+  slots:
+    - name: step
+      description: Indicates the current step in the flight ticket exchange workflow.
+      extractable: false
+    - name: pnr_number
+      description: The Passenger Name Record number of the customer's booking, which is an id composed by 6 letters or digitals. It is usually called booking reference.
+      extractable: true
+    - name: pnr_details
+      description: Details of the retrieved PNR.
+      extractable: false
+    - name: pnr_confirmed
+      description: Confirmation from the customer that the retrieved PNR is correct.
+      extractable: true
+
+    - name: new_itinerary
+      description: The requires of the new itinerary that the user want to change, for example the new departure date, the new return date or the destination or new origin.
+      extractable: true
+    - name: new_flights
+      description: The found flights according to user's requires in new_itinerary.
+      extractable: false
+    - name: selected_flight
+      description: the chosen flight from the new_flights list
+      extractable: true
+
+    - name: new_itinerary_details
+      description: Details of the new itinerary requested by the customer.
+      extractable: false
+    - name: new_itinerary_details_confirmed
+      description: Confirmation from the customer that the provided new itinerary is correct.
+      extractable: true
+
+    - name: original_ticket_number
+      description: The original ticket number for the exchange.
+      extractable: true
+    - name: pricing_information
+      description: Pricing details associated with the exchange.
+      extractable: false
+    - name: pricing_information_confirmed
+      description: Confirmation from the customer to proceed with the exchange based on the provided pricing details.
+      extractable: true
+
+    - name: pqr_number
+      description: PQR Number from the pricing service, used for confirming the exchange.
+      extractable: false
+    - name: reissue_number
+      description: Reissue Number needed for final ticket issuance.
+      extractable: false
+    - name: exception
+      description: Records any exceptions that occur during processing.
+      extractable: false
+  policies:
+    # - policy_type: QuickResponsePolicy
+    #   message: "Thank you for your information. I'm processing your request."
+    - policy_type: StepBasedLLMPolicy
+      local_test: true
+      intents:
+        - exchange_flight_ticket
+      steps:
+        - id: retrieve_pnr
+          description: Retrieve customer's booking according to the PNR number.
+          prompt: >
+            First of all, the slot pnr_number should be checked, if it isn't filled, the bot
+            need to send a message to user and ask for PNR number, or re-ask the right PNR
+            number if it has already been asked.
+
+            Once the PNR number is filled, then the retrieve_pnr action should be triggered to
+            get the PNR information from Sabre. The PNR information will be filled in slot
+            pnr_details.
+
+            Once the pnr_details is filled, the bot need to ask the customer to confirm the
+            booking information by giving them the information about booked flight, passengers etc.
+            Once the customer confirme it is the booking that they want to change, go to the step
+            exchange_shopping
+
+        - id: exchange_shopping
+          description: Find the new flight for customer according to user's requires
+          prompt: >
+            If the slot new_itinerary is empty, the bot need to ask the customer what's the requries
+            for the changes, such as the new travel date new destination or new origin, these
+            information will be saved in the slot new_itinerary.
+
+            The bot should use the action exchange_shopping to get the available flights for customer.
+            The slot new_flights will be filled by this action. Once the new_flights is filled, then the
+            bot need to send the flight information to customer and let the customer to choose the flight
+            that they want to change.
+
+            The selected flight will be saved in the slot selected_flight, once it is filled, go to the
+            next step
+        - id: cancel_existing_itinerary
+          description: Cancel the existing itinerary in the PNR.
+          prompt: >
+            If `pnr_details` is not filled, return to the `retrieve_pnr` step. If `pnr_confirmed` is
+            not filled, ask the customer to confirm the PNR details.
+
+            Once both slots are filled, trigger the cancel_existing_itinerary action to cancel the
+            booking. If successful, move to the next step `book_new_itinerary`. If it fails, inform
+            the customer of the failure.
+        - id: book_new_itinerary
+          description: Book a new itinerary for the customer.
+          prompt: >
+            If `new_itinerary_details` is not filled, prompt the customer for the desired itinerary
+            details and confirm the changes they want to make.
+
+            Trigger the book_new_itinerary action to book the new flights. If successful, move to
+            the next step `price_the_exchange`. If it fails, inform the customer that the booking
+            could not be completed.
+        - id: price_the_exchange
+          description: Calculate the cost of the exchange.
+          prompt: >
+            Ensure the `original_ticket_number` slot is filled. If not, ask the customer for their
+            ticket number and confirm the details.
+
+            Trigger the price_the_exchange action to calculate the cost. If successful and the
+            `pricing_information` slot is filled, move to the next step `evaluate_pricing_information`.
+        - id: evaluate_pricing_information
+          description: Present pricing to the customer and get approval.
+          prompt: >
+            Share the pricing details from the `pricing_information` slot with the customer, highlighting
+            the differences.
+
+            If the customer agrees to proceed (slot `pricing_information_confirmed` is true), move
+            to the next step `confirm_exchange`. If the customer declines, end the process.
+
+        - id: confirm_exchange
+          description: Confirm the exchange in Sabre.
+          prompt: >
+            If `pqr_number` is not filled, return to the `price_the_exchange` step.
+
+            Trigger the confirm_exchange action to finalize the exchange. If successful, proceed to
+            the next step `end_and_retrieve_updated_pnr`.
+
+        - id: end_and_retrieve_updated_pnr
+          description: Commit changes to the PNR and retrieve the updated record.
+          prompt: >
+            Trigger the end_and_retrieve_updated_pnr action to save changes and retrieve the updated
+            PNR. If successful, proceed to the next step `ticket_the_exchange`.
+
+        - id: ticket_the_exchange
+          description: Issue the exchanged ticket.
+          prompt: >
+            Notify a human agent to review and approve the exchange using the ask_human_confirmation action.
+
+            Once approved, trigger the ticket_the_exchange action to issue the ticket. If successful,
+            move to the final step `completion_confirmation`.
+
+        - id: completion_confirmation
+          description: Notify the customer that the exchange is complete.
+          prompt: >
+            Inform the customer that their ticket exchange is complete, sharing the new booking
+            details from the session.
+
+      actions:
+        - update_step
+        - retrieve_pnr
+        - exchange_shopping
+        - cancel_existing_itinerary
+        - bot_utter
+        - listen
+      llm_config:
+        llm_type: openai
+        llm_params:
+          model_name: gpt-4o-mini
+          temperature: 1.0
+  nlu:
+    nlu_type: LLMNLUParser
+    config:
+      llm_type: openai
+      llm_params:
+        model_name: gpt-4o-mini
+        temperature: 0.0
+    local_test: true

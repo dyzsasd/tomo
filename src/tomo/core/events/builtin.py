@@ -51,7 +51,6 @@ class UserUttered(Event):
 
         This property is used to access the name of the user's intent.
         """
-        print(f"self.intent: {self.intent}")
         return self.intent and self.intent.name
 
 

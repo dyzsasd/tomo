@@ -235,7 +235,6 @@ class MessageProcessor:
 
             await asyncio.gather(*tasks)
             test_results = await asyncio.gather(*loop_continue_tests)
-            logger.debug(f"test_results is {test_results}")
 
             continue_loop = len(test_results) > 0 and all(test_results)
 
