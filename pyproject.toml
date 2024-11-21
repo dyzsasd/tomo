@@ -33,3 +33,7 @@ python-dotenv = "^1.0.1"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+tomo-service = "tomo_demo_bff.service.app:run_app"
+generate-client = "tomo_demo_bff.scripts.generate_client:main"
