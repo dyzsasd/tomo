@@ -80,6 +80,7 @@ def create_app(config_path: str) -> FastAPI:
         Parameters:
         - session_id: Unique identifier for the chat session
         """
+        logger.debug(f"Processing session {session_id}")
         await handle_websocket(websocket, session_id, websocket_manager, tomo_service)
 
     # Development endpoints
@@ -131,10 +132,38 @@ def create_app(config_path: str) -> FastAPI:
     return app
 
 
+def configure_logging():
+    # Step 1: Configure the root logger to WARNING to suppress lower-level logs
+    logging.basicConfig(
+        level=logging.WARN,  # Set root logger to WARNING
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",  # Define log format
+    )
+
+    # Step 2: Get the 'tomo' logger
+    target_logger = logging.getLogger("tomo")
+
+    # Step 3: Set the 'tomo' logger's level to DEBUG (or desired level)
+    target_logger.setLevel(logging.DEBUG)
+
+    # Step 4: Create and attach a StreamHandler with desired format to the 'tomo' logger
+    handler = logging.StreamHandler()
+    handler.setLevel(logging.DEBUG)  # Handler level
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    handler.setFormatter(formatter)
+    target_logger.addHandler(handler)
+
+    # Step 5: Disable propagation to prevent logs from bubbling up to root logger
+    target_logger.propagate = False
+
+
 def run_app():
     """Run the FastAPI application"""
     import uvicorn  # pylint: disable=C0415
     from dotenv import load_dotenv  # pylint: disable=C0415
+
+    configure_logging()
 
     load_dotenv()
 

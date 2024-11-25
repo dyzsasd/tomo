@@ -166,7 +166,7 @@ assistant:
       llm_config:
         llm_type: openai
         llm_params:
-          model_name: gpt-4o-mini
+          model_name: gpt-4o
           temperature: 1.0
   nlu:
     nlu_type: LLMNLUParser

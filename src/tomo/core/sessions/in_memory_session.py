@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class InMemorySession(Session):
     def __init__(
         self,
-        session_manager: SessionManager,
+        session_manager: "InMemorySessionManager",
         session_id: str,
         max_event_history: Optional[int] = None,
         slots: Optional[Dict[str, Slot]] = None,

@@ -58,8 +58,6 @@ class BaseLLMComponent:
         timestamp = round(time.time())
         for idx, content in enumerate(prompts):
             prompt_type = "system" if idx == 0 else "user"
-            filename = (
-                f"sessions/{session_id}/{timestamp}-{prefix}_{prompt_type}_prompt.txt"
-            )
+            filename = f"session_logs/{session_id}/{timestamp}-{prefix}_{prompt_type}_prompt.txt"
             with open(filename, "w") as fh:
                 fh.write(content)

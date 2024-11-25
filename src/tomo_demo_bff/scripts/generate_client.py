@@ -1,3 +1,4 @@
+# pylint: disable=C0103
 import subprocess
 import json
 import os
@@ -57,7 +58,7 @@ def generate_typescript_client(openapi_url: str, output_dir: str):
             os.remove(spec_file)
 
 
-if __name__ == "__main__":
+def main():
     # URL of your running FastAPI service
     OPENAPI_URL = "http://localhost:8000/api/v1/openapi.json"
     # Output directory for generated client
