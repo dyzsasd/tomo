@@ -65,7 +65,7 @@ class Event(BaseModel):
     """Model for session events"""
 
     type: str
-    timestamp: datetime
+    timestamp: float
     data: Dict[str, Any]
 
 

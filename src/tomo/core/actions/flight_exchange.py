@@ -8,6 +8,7 @@ import typing
 from tomo.core.events import (
     SlotSet,
     BotUttered,
+    SessionDisabled,
 )
 from tomo.shared.action import Action
 from tomo.shared.event import Event
@@ -64,7 +65,7 @@ class ValidateServiceAvailability(Action):
                 timestamp=time.time(),
                 metadata=None,
             ),
-            ActionDisableSession(),
+            SessionDisabled(),
         ]
 
 
@@ -114,7 +115,7 @@ class ActionExchangeShopping(Action):
                 timestamp=time.time(),
                 metadata=None,
             ),
-            ActionDisableSession(),
+            SessionDisabled(),
         ]
 
 
@@ -564,25 +565,6 @@ class AskHumanConfirmation(Action):
             BotUttered(
                 text="Your exchange request is pending approval from a human agent.",
                 data=None,
-                timestamp=time.time(),
-                metadata=None,
-            )
-        ]
-
-
-class ActionDisableSession(Action):
-    name: typing.ClassVar[str] = "disable_session"
-    description: typing.ClassVar[str] = "Turn off the session immediately."
-
-    async def run(
-        self, output_channel: OutputChannel, session: Session
-    ) -> typing.Optional[typing.List[Event]]:
-        logger.debug("Session disabled.")
-        # Implement session termination logic
-        return [
-            SlotSet(
-                key="session_active",
-                value=False,
                 timestamp=time.time(),
                 metadata=None,
             )

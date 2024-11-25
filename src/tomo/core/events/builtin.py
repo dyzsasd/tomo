@@ -78,7 +78,7 @@ class BotUttered(Event):
         Args:
             session: The session that will be updated with the bot's utterance.
         """
-        session.latest_bot_utterance = self.text
+        return
 
 
 class SlotSet(Event):

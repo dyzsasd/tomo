@@ -66,8 +66,9 @@ class BaseLLMPolicy(BaseLLMComponent, Policy):
                 )
 
             result = self.llm_chain.invoke(inputs)
+            logger.debug(f"LLM result: {result}")
             actions = [
-                Action.create(action["name"], **action["arguments"])
+                Action.create(action["name"], **(action["arguments"] or {}))
                 for action in result.get("actions", [])
             ]
 

@@ -4,11 +4,14 @@ import logging
 from tomo.core.output_channels import CollectingOutputChannel
 from tomo.core.policies import LocalPolicyManager
 from tomo.core.processor import MessageProcessor
-from tomo.core.sessions import InMemorySessionManager
+from tomo.core.sessions import FileSessionManager
 from tomo.core.user_message import TextUserMessage
 from tomo.shared.action_executor import ActionExector
 from tomo.config import AssistantConfigLoader
 from tomo.assistant import Assistant
+
+from .models import Event
+
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +32,7 @@ class TomoService:
         self.assistant = Assistant(config=assistant_config)
 
         # Initialize core components
-        self.session_manager = InMemorySessionManager(assistant=self.assistant)
+        self.session_manager = FileSessionManager(assistant=self.assistant)
         self.policy_manager = LocalPolicyManager(policies=self.assistant.policies)
         self.action_executor = ActionExector()
         self.nlu_parser = self.assistant.nlu_parser
@@ -89,7 +92,10 @@ class TomoService:
         events = []
         for event in session.events:
             if after_timestamp is None or event.timestamp > after_timestamp:
-                events.append(event.as_dict())
+                event = Event(
+                    type=event.name, timestamp=event.timestamp, data=event.as_dict()
+                )
+                events.append(event)
         return events
 
     async def get_conversation_messages(self, session_id: str) -> List[Dict[str, Any]]:

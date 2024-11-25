@@ -17,6 +17,7 @@ from tomo.shared.exceptions import TomoFatalException, TomoException
 from tomo.shared.session import Session
 from tomo.shared.session_manager import SessionManager
 from tomo.shared.slots import Slot
+from tomo.utils.json import JsonFormat
 
 
 logger = logging.getLogger(__name__)
@@ -247,10 +248,10 @@ class FileSessionManager(SessionManager):
             return None
 
         try:
-            return Session.from_dict(session_data)
+            return self.from_dict(session_data)
         except Exception as e:
             logger.error(f"Error deserializing session {session_id}: {e}")
-            return None
+            raise e
 
     async def save(self, session: Session) -> Session:
         """
@@ -265,7 +266,7 @@ class FileSessionManager(SessionManager):
         file_path = self._get_session_path(session.session_id)
 
         # Add metadata for session management
-        session_data = session.to_dict()
+        session_data = self.to_dict(session)
         session_data["_metadata"] = {"last_modified": time.time()}
 
         await self._write_session_file(file_path, session_data)
@@ -355,3 +356,32 @@ class FileSessionManager(SessionManager):
             "total_size_bytes": total_size,
             "storage_path": str(self.storage_path),
         }
+
+    def to_dict(self, session: Session):
+        return {
+            "session_id": session.session_id,
+            "max_event_history": session.max_event_history,
+            "events": [JsonFormat.to_json(event) for event in session.events],
+            "slots": {
+                key: JsonFormat.to_json(slot) for key, slot in session.slots.items()
+            },
+            "active": session.active,
+        }
+
+    def from_dict(self, data: dict):
+        logger.debug("reading session from file")
+        session_id = data["session_id"]
+        max_event_history = data.get("max_event_history")
+        events = [JsonFormat.from_json(event_data) for event_data in data["events"]]
+        slots = {
+            key: JsonFormat.from_json(slot_data)
+            for key, slot_data in data["slots"].items()
+        }
+        active = data.get("active")
+        session = FileSession(
+            self, session_id, max_event_history=max_event_history, slots=slots
+        )
+        session.events = events
+        session.active = active
+
+        return session

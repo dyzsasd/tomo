@@ -28,7 +28,7 @@ class Action(abc.ABC, JSONSerializableBase):
         super().__init_subclass__(**kwargs)
         action_name = cls.name
         if action_name in Action.subclasses:
-            logger.fatal(f"{action_name} exists already.")
+            logger.fatal(f"action {action_name} exists already.")
         Action.subclasses[action_name] = cls  # Store subclass by name
 
     @property

@@ -33,6 +33,10 @@ class Event(abc.ABC, JSONSerializableBase):
             session: The session to which the event will be applied.
         """
 
+    @property
+    def name(self):
+        return self.__class__.__name__
+
     def as_dict(self) -> typing.Dict[str, typing.Any]:
         """Convert the event to a dictionary format for serialization."""
         return JsonFormat.to_json(self)
