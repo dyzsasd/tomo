@@ -1,5 +1,6 @@
-from typing import Any, Dict, List, Optional
 import logging
+import time
+from typing import Any, Dict, List, Optional
 
 from fastapi import WebSocket
 
@@ -31,7 +32,9 @@ class WebSocketOutputChannel(OutputChannel):
     async def send_text_message(
         self, text: str, recipient_id: Optional[str] = None, **kwargs: Any
     ) -> None:
-        await self._send_message({"type": "text", "text": text, "metadata": kwargs})
+        await self._send_message(
+            {"type": "bot", "text": text, "timestamp": time.time(), "metadata": kwargs}
+        )
 
     async def send_image_url(
         self, image: str, recipient_id: Optional[str] = None, **kwargs: Any

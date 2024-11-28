@@ -26,3 +26,5 @@ logs/
 .vscode/
 
 session_logs
+sessions
+generated

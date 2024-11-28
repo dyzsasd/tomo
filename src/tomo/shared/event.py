@@ -17,7 +17,7 @@ class Event(abc.ABC, JSONSerializableBase):
     carries metadata and can be applied to the session to update its state.
     """
 
-    timestamp: typing.Optional[float]
+    timestamp: float
     metadata: typing.Optional[typing.Dict[str, typing.Any]]
 
     @abc.abstractmethod
@@ -34,8 +34,13 @@ class Event(abc.ABC, JSONSerializableBase):
         """
 
     @property
-    def name(self):
+    def type(self):
         return self.__class__.__name__
+
+    @property
+    @abc.abstractmethod
+    def name(self):
+        pass
 
     def as_dict(self) -> typing.Dict[str, typing.Any]:
         """Convert the event to a dictionary format for serialization."""

@@ -62,11 +62,24 @@ class SlotResponse(BaseModel):
 
 
 class Event(BaseModel):
-    """Model for session events"""
+    """
+    Model for session events
+
+    Parameters:
+    - type: event type, which could be action, bot utter etc.
+    - timestamp: timestamps of event
+    - name: the name of the event
+    - detail: html block to display the event informations
+    - data: detailed full information about event
+    - metadata: metadata of event
+    """
 
     type: str
     timestamp: float
-    data: Dict[str, Any]
+    name: str
+    detail: str
+    data: Optional[Dict[str, Any]]
+    metadata: Optional[Dict[str, Any]]
 
 
 class EventResponse(BaseModel):
@@ -74,3 +87,21 @@ class EventResponse(BaseModel):
 
     session_id: str
     events: List[Event]
+
+
+class SessionSummary(BaseModel):
+    """Model for session summary information"""
+
+    session_id: str
+    created_at: Optional[datetime] = None
+    last_active: Optional[datetime] = None
+    message_count: int
+    active: bool
+    current_step: Optional[str] = None
+
+
+class SessionListResponse(BaseModel):
+    """Response model for sessions list endpoint"""
+
+    total_sessions: int
+    sessions: List[SessionSummary]

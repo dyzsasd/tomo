@@ -220,6 +220,7 @@ class FileSessionManager(SessionManager):
         """
         session = await self.get_session(session_id)
         if session is None:
+            logger.info(f"creating new session {session_id}")
             # Initialize new session with assistant slots
             slots = {slot.name: deepcopy(slot) for slot in self.assistant.slots}
             session = FileSession(
@@ -369,7 +370,6 @@ class FileSessionManager(SessionManager):
         }
 
     def from_dict(self, data: dict):
-        logger.debug("reading session from file")
         session_id = data["session_id"]
         max_event_history = data.get("max_event_history")
         events = [JsonFormat.from_json(event_data) for event_data in data["events"]]

@@ -92,6 +92,9 @@ class InMemorySessionManager:
         self.assistant = assistant
         self.sessions: Dict[str, Session] = {}
 
+    async def list_sessions(self) -> list[str]:
+        return list(self.sessions.keys())
+
     async def get_or_create_session(
         self, session_id: str, max_event_history: Optional[int] = None
     ) -> Session:

@@ -11,10 +11,12 @@ from .endpoints.websocket import handle_websocket
 from .endpoints.events import get_session_events
 from .endpoints.conversations import get_conversations
 from .endpoints.slots import get_slots
+from .endpoints.sessions import get_all_sessions
 from .models import (
     ConversationResponse,
     SlotResponse,
     EventResponse,
+    SessionListResponse,
 )
 
 
@@ -84,7 +86,7 @@ def create_app(config_path: str) -> FastAPI:
         await handle_websocket(websocket, session_id, websocket_manager, tomo_service)
 
     # Development endpoints
-    @app.get("/api/v1/dev/session/{session_id}/events", response_model=EventResponse)
+    @app.get("/api/v1/session/{session_id}/events", response_model=EventResponse)
     async def session_events_endpoint(
         session_id: str,
         after: Optional[float] = Query(
@@ -93,6 +95,8 @@ def create_app(config_path: str) -> FastAPI:
     ):
         """
         Get events for a specific session
+
+        Event can be used to show the reasoning and action steps of Assistant.
 
         Parameters:
         - session_id: Session identifier
@@ -108,6 +112,8 @@ def create_app(config_path: str) -> FastAPI:
     async def conversations_endpoint(session_id: str):
         """
         Get conversation history for a session
+        This API can be used to retrieve all the user and bot messages in a session,
+        which can be used to rebuild the conversation interface.
 
         Parameters:
         - session_id: Session identifier
@@ -128,6 +134,15 @@ def create_app(config_path: str) -> FastAPI:
     @app.get("/api/v1/openapi.json")
     async def get_openapi_schema():
         return app.openapi()
+
+    @app.get("/api/v1/sessions", response_model=SessionListResponse)
+    async def sessions_endpoint():
+        """
+        Get all sessions with their summaries
+
+        Returns a list of all sessions with basic information about each session
+        """
+        return await get_all_sessions(tomo_service)
 
     return app
 

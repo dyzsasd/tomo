@@ -28,4 +28,5 @@ class ExtractedAction(BaseModel):
 
 @json_serializable
 class ActionList(BaseModel):
+    reason: str = Field(description="Reasoning for generating these actions")
     actions: typing.List[ExtractedAction] = Field(description="Actions returned by LLM")

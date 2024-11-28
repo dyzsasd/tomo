@@ -36,3 +36,7 @@ class SessionManager(abc.ABC):
     @abc.abstractmethod
     async def save(self, session: str) -> Session:
         pass
+
+    @abc.abstractmethod
+    async def list_sessions(self) -> list[str]:
+        pass

@@ -30,17 +30,21 @@ def generate_typescript_client(openapi_url: str, output_dir: str):
                 "-i",
                 spec_file,
                 "-g",
-                "typescript-fetch",
+                "typescript-axios",
                 "-o",
                 output_dir,
-                "--additional-properties=",
-                "supportsES6=true,"
-                "npmName=@tomo/client,"
-                "npmVersion=1.0.0,"
-                "withInterfaces=true,"
-                "typescriptThreePlus=true",
+                (
+                    "--additional-properties="
+                    "supportsES6=true,"
+                    "npmName=@tomo/client,"
+                    "npmVersion=1.0.0,"
+                    "withInterfaces=true,"
+                    "typescriptThreePlus=true"
+                ),
             ],
             check=True,
+            capture_output=True,
+            text=True,
         )
 
         # Clean up temporary files
@@ -50,7 +54,15 @@ def generate_typescript_client(openapi_url: str, output_dir: str):
         print(f"TypeScript client generated successfully in {output_dir}")
 
     except subprocess.CalledProcessError as e:
-        print(f"Error generating TypeScript client: {e}")
+        print("Error generating TypeScript client:")
+        print(f"Return Code: {e.returncode}")
+        print(f"Command: {e.cmd}")
+        if e.stdout:
+            print("Standard Output:")
+            print(e.stdout)
+        if e.stderr:
+            print("Standard Error:")
+            print(e.stderr)
         raise
     finally:
         # Ensure cleanup
