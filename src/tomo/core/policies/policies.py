@@ -26,7 +26,7 @@ class Policy(abc.ABC):
         """Automatically record each subclass."""
         super().__init_subclass__(**kwargs)
         if cls.__name__ in Policy.subclasses:
-            logger.fatal(f"{cls.__name__} exists already.")
+            logger.fatal(f"policy {cls.__name__} exists already.")
         Policy.subclasses[cls.__name__] = cls  # Store subclass by name
 
     @property

@@ -16,6 +16,8 @@ class SessionShutdown(Event):
     This event deactivates the session when applied.
     """
 
+    name: typing.ClassVar[str] = "shut down conversation"
+
     def apply_to(self, session: "Session") -> None:
         """Deactivate the session."""
         session.deactivate()
@@ -28,6 +30,8 @@ class UserUttered(Event):
     This event captures the user's message, intent, and any detected entities.
     It updates the session to reflect the user's input.
     """
+
+    name: typing.ClassVar[str] = "user talked"
 
     message_id: str
     text: str
@@ -51,7 +55,6 @@ class UserUttered(Event):
 
         This property is used to access the name of the user's intent.
         """
-        print(f"self.intent: {self.intent}")
         return self.intent and self.intent.name
 
 
@@ -69,6 +72,8 @@ class BotUttered(Event):
         metadata: Additional metadata related to the event.
     """
 
+    name: typing.ClassVar[str] = "Bot talked"
+
     text: typing.Optional[str] = None
     data: typing.Optional[typing.Dict] = None
 
@@ -79,7 +84,7 @@ class BotUttered(Event):
         Args:
             session: The session that will be updated with the bot's utterance.
         """
-        session.latest_bot_utterance = self.text
+        return
 
 
 class SlotSet(Event):
@@ -106,6 +111,10 @@ class SlotSet(Event):
         """
         session.set_slot(self.key, self.value)
 
+    @property
+    def name(self):
+        return f"Set slot {self.key} value"
+
 
 class SlotUnset(Event):
     """
@@ -128,6 +137,10 @@ class SlotUnset(Event):
             session: The session where the slot value will be updated.
         """
         session.unset_slot(self.key)
+
+    @property
+    def name(self):
+        return f"Unset slot {self.key} value"
 
 
 class ActionExecuted(Event):
@@ -153,6 +166,10 @@ class ActionExecuted(Event):
         """
         session.latest_action = self.action_name
 
+    @property
+    def name(self):
+        return f"Action {self.action_name} executed"
+
 
 class ActionFailed(Event):
     action_name: str
@@ -162,6 +179,10 @@ class ActionFailed(Event):
         # TODO: thinking about how to handle the failed action
         pass
 
+    @property
+    def name(self):
+        return f"Action {self.action_name} failed"
+
 
 class SessionStarted(Event):
     """
@@ -169,6 +190,8 @@ class SessionStarted(Event):
 
     This event resets the session to its initial state when applied.
     """
+
+    name: typing.ClassVar[str] = "session started"
 
     def apply_to(self, session: "Session") -> None:
         """
@@ -185,6 +208,8 @@ class SessionDisabled(Event):
     Event to disable a session.
 
     """
+
+    name: typing.ClassVar[str] = "session disabled"
 
     def apply_to(self, session: "Session") -> None:
         """

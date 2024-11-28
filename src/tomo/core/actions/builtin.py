@@ -18,7 +18,8 @@ class ActionListen(Action):
     name: typing.ClassVar[str] = "listen"
     description: typing.ClassVar[str] = (
         "Need more information from user, waiting to user's message, "
-        "it should be chosen if the bot talked to user and need user's input."
+        "it should be chosen if there is already a question asked to "
+        "user or if a bot_utter action has been chosen to ask the question to user."
     )
 
     async def run(
@@ -164,3 +165,29 @@ class ActionDisableSession(Action):
     name: typing.ClassVar[str] = "disable_session"
     description: typing.ClassVar[str] = "Turn off the session immediately"
     "Turn off action"
+
+
+class ActionUpdateStep(Action):
+    name: typing.ClassVar[str] = "update_step"
+    description: typing.ClassVar[
+        str
+    ] = "Updates the 'step' slot to indicate the current step in the workflow."
+
+    step_name: str = field(
+        metadata={
+            "description": "The name of the current step to be set in the 'step' slot."
+        }
+    )
+
+    async def run(
+        self, output_channel: OutputChannel, session: Session
+    ) -> typing.Optional[typing.List[Event]]:
+        logger.debug(f"Updating step to: {self.step_name}")
+        return [
+            SlotSet(
+                key="step",
+                value=self.step_name,
+                timestamp=time.time(),
+                metadata=None,
+            )
+        ]

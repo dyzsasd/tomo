@@ -14,9 +14,10 @@ class PolicyConfig:
 
 # NLU configuration
 class NLUConfig:
-    def __init__(self, nlu_type: str, config: Dict[str, Any]):
+    def __init__(self, nlu_type: str, config: Dict[str, Any], local_test: bool):
         self.nlu_type = nlu_type
         self.config = config
+        self.local_test = local_test
 
 
 # Assistant configuration
@@ -64,7 +65,11 @@ class AssistantConfigLoader:
 
         # Parse NLU config
         nlu_data = assistant_data["nlu"]
-        nlu = NLUConfig(nlu_type=nlu_data["nlu_type"], config=nlu_data["config"])
+        nlu = NLUConfig(
+            nlu_type=nlu_data["nlu_type"],
+            config=nlu_data["config"],
+            local_test=nlu_data.get("local_test", False),
+        )
 
         # Create AssistantConfig instance
         assistant_config = AssistantConfig(

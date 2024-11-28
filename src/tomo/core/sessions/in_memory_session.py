@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class InMemorySession(Session):
     def __init__(
         self,
-        session_manager: SessionManager,
+        session_manager: "InMemorySessionManager",
         session_id: str,
         max_event_history: Optional[int] = None,
         slots: Optional[Dict[str, Slot]] = None,
@@ -91,6 +91,9 @@ class InMemorySessionManager:
         """Initialize an empty dictionary to store active sessions."""
         self.assistant = assistant
         self.sessions: Dict[str, Session] = {}
+
+    async def list_sessions(self) -> list[str]:
+        return list(self.sessions.keys())
 
     async def get_or_create_session(
         self, session_id: str, max_event_history: Optional[int] = None

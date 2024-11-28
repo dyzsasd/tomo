@@ -11,7 +11,7 @@ from tomo.core.actions import (
     ActionListen,
     ActionSessionStart,
 )
-from tomo.core.events import ActionFailed, Event, Session, UserUttered
+from tomo.core.events import ActionFailed, ActionExecuted, Event, Session, UserUttered
 from tomo.core.policies import PolicyManager
 from tomo.core.policies import PolicyPrediction
 from tomo.core.user_message import UserMessage
@@ -38,8 +38,15 @@ class MessageProcessor:
         # events and return values are used to update
         # the session state after an action has been taken
         try:
-            events = await action.run(output_channel, session)
-
+            events = await action.run(output_channel, session) or []
+            events.append(
+                ActionExecuted(
+                    action_name=action.name,
+                    policy=policy_name,
+                    timestamp=time.time(),
+                    metadata=None,
+                )
+            )
         except Exception:
             logger.exception(
                 f"Encountered an exception while running action '{action.name}'."
@@ -210,7 +217,6 @@ class MessageProcessor:
         async def _process(prediction: PolicyPrediction):
             async with session_lock:
                 session = await self.session_manager.get_session(session_id)
-                logger.debug(f"processing prediction {prediction.action_names}")
                 events = await self._handle_prediction_with_session(
                     prediction, output_channel, session
                 )
@@ -235,7 +241,6 @@ class MessageProcessor:
 
             await asyncio.gather(*tasks)
             test_results = await asyncio.gather(*loop_continue_tests)
-            logger.debug(f"test_results is {test_results}")
 
             continue_loop = len(test_results) > 0 and all(test_results)
 
@@ -245,7 +250,7 @@ class MessageProcessor:
         output_channel: OutputChannel,
         session: Session,
     ):
-        logger.debug(f"Processing prediction: {prediction.policy_name}")
+        logger.debug(f"processing prediction with actions: {prediction.action_names}")
         actions = prediction.actions
         if actions is None or len(actions) == 0:
             return []

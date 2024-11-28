@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Type, get_type_hints
+from typing import Any, Dict, Optional, Type, Union, get_type_hints
 
 JSON_SERIALIZABLE_KEY = "__JSON_SERIALIZABLE_KEY__"
 CLASS_REGISTRY: Dict[str, Type] = {}
@@ -35,14 +35,25 @@ class JsonFormat:
             return None
         class_name = data.pop("_class", None)
         if not class_name:
-            raise ValueError("Missing '_class' key in JSON data for deserialization")
+            raise ValueError(
+                f"Missing '_class' key in JSON data for deserialization: {data}"
+            )
         cls = CLASS_REGISTRY.get(class_name)
         if not cls:
             raise ValueError(f"Unknown class: {class_name}")
         type_hints = get_type_hints(cls)
 
         def deserialize_value(value, field_type):
+            if value is None:
+                return None
+
             origin = getattr(field_type, "__origin__", None)
+            if origin is Union:
+                # Get the first non-NoneType argument (Optional is Union[T, None])
+                embedded_type = next(
+                    t for t in field_type.__args__ if t is not type(None)
+                )
+                return deserialize_value(value, embedded_type)
             if origin is list:
                 item_type = field_type.__args__[0]
                 return [deserialize_value(item, item_type) for item in value]
@@ -62,8 +73,10 @@ class JsonFormat:
 def json_serializable(cls):
     """Decorator to make a class JSON serializable."""
     # Register concrete classes
-    if getattr(cls, "__abstractmethods__", None) is None:
+    abstract_methods = getattr(cls, "__abstractmethods__", None)
+    if abstract_methods is None or len(abstract_methods) == 0:
         CLASS_REGISTRY[cls.__name__] = cls
+
     setattr(cls, JSON_SERIALIZABLE_KEY, True)
     return cls
 

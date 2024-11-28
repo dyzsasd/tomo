@@ -1,8 +1,10 @@
+from dataclasses import dataclass
 from typing import Any, Optional
 
 from tomo.utils.json import json_serializable
 
 
+@dataclass
 @json_serializable
 class Slot:
     """
@@ -10,25 +12,11 @@ class Slot:
     during the conversation.
     """
 
-    def __init__(
-        self,
-        name: str,
-        extractable: bool,
-        initial_value: Optional[Any] = None,
-        description: Optional[str] = None,
-    ):
-        """
-        Initialize a Slot.
-
-        Args:
-            name: The name of the slot (key).
-            initial_value: The initial value of the slot (optional).
-            description: the description
-        """
-        self.name = name
-        self.extractable = extractable
-        self.value = initial_value
-        self.description = description
+    name: str
+    extractable: bool
+    value: Optional[Any] = None
+    initial_value: Optional[Any] = None
+    description: Optional[str] = None
 
     def set_value(self, value):
         """
