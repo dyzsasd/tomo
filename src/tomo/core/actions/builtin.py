@@ -1,3 +1,5 @@
+# pylint: disable=C0301
+# Line too long
 from dataclasses import field
 import logging
 import time
@@ -17,9 +19,12 @@ logger = logging.getLogger(__name__)
 class ActionListen(Action):
     name: typing.ClassVar[str] = "listen"
     description: typing.ClassVar[str] = (
-        "Need more information from user, waiting to user's message, "
-        "it should be chosen if there is already a question asked to "
-        "user or if a bot_utter action has been chosen to ask the question to user."
+        "The ActionListen action is used to indicate that the bot is waiting for further input from the user. This action is typically chosen when:"
+        "1.	The bot has asked the user a question and is awaiting a response."
+        "2.	The bot has already provided a reply (via a bot_utter action), and there is no additional information to provide until the user responds."
+        "This ensures that the bot transitions into a listening state to allow the user to continue the conversation or provide the needed details to "
+        "proceed. It plays a critical role in maintaining the flow of multi-turn conversations, ensuring the bot does not prematurely take further actions "
+        "before the user has had the chance to reply."
     )
 
     async def run(

@@ -48,6 +48,12 @@ class BaseLLMPolicy(BaseLLMComponent, Policy):
         )
 
     @cached_property
+    def json_action_instruction(self):
+        return "\n\n".join(
+            [generate_action_instruction(action) for action in self.actions]
+        )
+
+    @cached_property
     def intent_instruction(self):
         if not self.intents:
             return "all intents"

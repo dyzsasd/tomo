@@ -4,7 +4,7 @@ import logging
 from tomo.core.output_channels import CollectingOutputChannel
 from tomo.core.policies import LocalPolicyManager
 from tomo.core.processor import MessageProcessor
-from tomo.core.sessions import FileSessionManager
+from tomo.core.sessions import InMemorySessionManager
 from tomo.core.user_message import TextUserMessage
 from tomo.shared.action_executor import ActionExector
 from tomo.shared.session_manager import SessionManager
@@ -43,7 +43,7 @@ class TomoService:
         self.assistant = Assistant(config=assistant_config)
 
         # Initialize core components
-        self.session_manager: SessionManager = FileSessionManager(
+        self.session_manager: SessionManager = InMemorySessionManager(
             assistant=self.assistant
         )
         self.policy_manager = LocalPolicyManager(policies=self.assistant.policies)

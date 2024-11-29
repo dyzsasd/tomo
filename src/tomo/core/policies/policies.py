@@ -19,7 +19,7 @@ class Policy(abc.ABC):
     def create(cls, policy_name, **kwargs):
         """Factory method to create an instance of a subclass by name."""
         if policy_name not in cls.subclasses:
-            raise ValueError(f"Unknown action: {policy_name}")
+            raise ValueError(f"Unknown policy: {policy_name}")
         return cls.subclasses[policy_name](**kwargs)
 
     def __init_subclass__(cls, **kwargs):
