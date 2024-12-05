@@ -5,10 +5,10 @@ import logging
 import textwrap
 from typing import Optional, Dict, Any, List
 
-from tomo.shared.session import Session
+from tomo.core.session import Session
 from tomo.utils.instruction_builder import (
     json_conversation_history_instruction,
-    slot_instruction,
+    json_slot_instruction,
 )
 
 from .base_llm_policy import BaseLLMPolicy
@@ -36,7 +36,7 @@ class StandardLLMPolicy(BaseLLMPolicy):
             json.dumps(
                 {
                     "persona": [
-                        "You are an intelligent agent within multi-agent based customer service system, your responsability is guiding the system to determine and execute actions in order to complete the specific missions",
+                        "You are an intelligent agent within multi-agent based customer service system, your responsability is guiding the system to determine and execute actions in order to complete the specific missions.",
                         "The assistant should only handle intents within this intent scope and must not respond to intents outside of it",
                         "The assistant is responsible for determining the appropriate actions from the actions list, based on the current session state and conversation history.",
                         "1.  Session State: The session state is represented by a set of slots that store specific information about the customer and their booking.",
@@ -44,11 +44,12 @@ class StandardLLMPolicy(BaseLLMPolicy):
                         "In order to select the action to execute, the assistant should",
                         "1. Check the session state, the customer bot conversation history and the instructions.",
                         "2. Select the right actions the system should execute from the available actions list.",
+                        "Once the mission is accomplished, then no more actions should be triggered",
                     ],
-                    "mession": mission,
+                    "mission": mission,
                     "intent scope": self.intent_instruction,
                     "instructions": instructions,
-                    "actions": self.action_instruction,
+                    "actions": self.json_action_instruction,
                     "output_format": self.output_parser.get_format_instructions(),
                 },
                 indent=2,
@@ -71,6 +72,6 @@ class StandardLLMPolicy(BaseLLMPolicy):
 
     def _get_inputs(self, session: Session) -> Dict[str, Any]:
         return {
-            "slots": slot_instruction(session),
+            "slots": json_slot_instruction(session),
             "conversations": json_conversation_history_instruction(session),
         }

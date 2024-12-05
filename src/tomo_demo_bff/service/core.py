@@ -4,10 +4,10 @@ import logging
 from tomo.core.output_channels import CollectingOutputChannel
 from tomo.core.policies import LocalPolicyManager
 from tomo.core.processor import MessageProcessor
-from tomo.core.sessions import InMemorySessionManager
+from tomo.core.session_managers import InMemorySessionManager
 from tomo.core.user_message import TextUserMessage
 from tomo.shared.action_executor import ActionExector
-from tomo.shared.session_manager import SessionManager
+from tomo.core.session_managers.base import SessionManager
 from tomo.config import AssistantConfigLoader
 from tomo.assistant import Assistant
 

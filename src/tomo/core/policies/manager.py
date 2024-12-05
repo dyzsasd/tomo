@@ -2,7 +2,7 @@ import abc
 import logging
 import typing
 
-from tomo.shared.session import Session
+from tomo.core.session import Session
 
 from .policies import PolicyPrediction
 from .policies import Policy

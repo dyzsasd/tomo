@@ -11,9 +11,9 @@ from tomo.core.events import (
     SessionDisabled,
 )
 from tomo.shared.action import Action
-from tomo.shared.event import Event
+from tomo.core.events.base import Event
 from tomo.shared.output_channel import OutputChannel
-from tomo.shared.session import Session
+from tomo.core.session import Session
 from tomo.shared.exceptions import TomoFatalException
 
 logger = logging.getLogger(__name__)

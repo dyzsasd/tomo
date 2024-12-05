@@ -4,7 +4,7 @@ import logging
 from typing import Optional
 
 from tomo.core.actions import ActionBotUtterQuickReply
-from tomo.shared.session import Session
+from tomo.core.session import Session
 
 from .models import PolicyPrediction
 

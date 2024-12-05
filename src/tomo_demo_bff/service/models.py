@@ -1,7 +1,10 @@
 from datetime import datetime
+from enum import Enum
 from typing import List, Optional, Dict, Any
 
 from pydantic import BaseModel
+
+from tomo.core.models import SessionStatus
 
 
 class WebSocketMessage(BaseModel):
@@ -96,8 +99,7 @@ class SessionSummary(BaseModel):
     created_at: Optional[datetime] = None
     last_active: Optional[datetime] = None
     message_count: int
-    active: bool
-    current_step: Optional[str] = None
+    status: SessionStatus
 
 
 class SessionListResponse(BaseModel):
@@ -105,3 +107,48 @@ class SessionListResponse(BaseModel):
 
     total_sessions: int
     sessions: List[SessionSummary]
+
+
+class SessionType(str, Enum):
+    """Enum for different types of sessions"""
+
+    PNR_CHECK = "pnr_check"
+    GENERAL = "general"
+
+
+class PNRSession(BaseModel):
+    """Model for sessions related to PNR checks"""
+
+    session_id: str
+    pnr_number: str
+    created_at: datetime
+    last_active: datetime
+    status: SessionStatus
+    session_type: SessionType = SessionType.PNR_CHECK
+    message_count: int
+
+
+class CreatePNRSessionRequest(BaseModel):
+    """Request model for creating a PNR session"""
+
+    pnr_number: str
+
+
+class PNRSessionsResponse(BaseModel):
+    """Response model for PNR sessions list endpoint"""
+
+    total_sessions: int
+    sessions: List[PNRSession]
+
+
+class CreatePNRSessionResponse(BaseModel):
+    """Response model for PNR session creation endpoint"""
+
+    session_id: str
+
+
+class DeleteSessionResponse(BaseModel):
+    """Response model for session deletion endpoint"""
+
+    status: str
+    message: str

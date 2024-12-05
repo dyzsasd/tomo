@@ -6,8 +6,11 @@ from langchain.output_parsers.json import SimpleJsonOutputParser
 
 from tomo.core.base_llm_component import BaseLLMComponent
 from tomo.shared.action import Action
-from tomo.shared.session import Session
-from tomo.utils.instruction_builder import generate_action_instruction
+from tomo.core.session import Session
+from tomo.utils.instruction_builder import (
+    generate_action_instruction,
+    json_generate_action_instruction,
+)
 
 from .policies import Policy
 from .models import ActionList, PolicyPrediction
@@ -49,8 +52,8 @@ class BaseLLMPolicy(BaseLLMComponent, Policy):
 
     @cached_property
     def json_action_instruction(self):
-        return "\n\n".join(
-            [generate_action_instruction(action) for action in self.actions]
+        return "\n".join(
+            [json_generate_action_instruction(action) for action in self.actions]
         )
 
     @cached_property

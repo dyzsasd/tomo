@@ -11,12 +11,16 @@ from .endpoints.websocket import handle_websocket
 from .endpoints.events import get_session_events
 from .endpoints.conversations import get_conversations
 from .endpoints.slots import get_slots
-from .endpoints.sessions import get_all_sessions
+from .endpoints import sessions
 from .models import (
     ConversationResponse,
     SlotResponse,
     EventResponse,
     SessionListResponse,
+    PNRSessionsResponse,
+    CreatePNRSessionResponse,
+    CreatePNRSessionRequest,
+    DeleteSessionResponse,
 )
 
 
@@ -142,7 +146,22 @@ def create_app(config_path: str) -> FastAPI:
 
         Returns a list of all sessions with basic information about each session
         """
-        return await get_all_sessions(tomo_service)
+        return await sessions.get_all_sessions(tomo_service)
+
+    @app.get("/api/v1/pnrs", response_model=PNRSessionsResponse)
+    async def get_pnr_sessions_endpoint():
+        """Get all PNR check sessions"""
+        return await sessions.get_pnr_sessions(tomo_service)
+
+    @app.put("/api/v1/pnr/create", response_model=CreatePNRSessionResponse)
+    async def create_pnr_session_endpoint(request: CreatePNRSessionRequest):
+        """Create or retrieve a session for PNR check"""
+        return await sessions.create_pnr_session(request, tomo_service)
+
+    @app.delete("/api/v1/session/{session_id}", response_model=DeleteSessionResponse)
+    async def delete_session_endpoint(session_id: str):
+        """Soft delete a session"""
+        return await sessions.delete_session(session_id, tomo_service)
 
     return app
 
@@ -182,5 +201,5 @@ def run_app():
 
     load_dotenv()
 
-    app = create_app("assistants/flight_agent.yaml")  # Update path as needed
+    app = create_app("assistants/fare_agent.yaml")  # Update path as needed
     uvicorn.run(app, host="0.0.0.0", port=8000)

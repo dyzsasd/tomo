@@ -7,9 +7,9 @@ import typing
 
 from tomo.core.events import SlotSet
 from tomo.shared.action import Action
-from tomo.shared.event import Event
+from tomo.core.events.base import Event
 from tomo.shared.output_channel import OutputChannel
-from tomo.shared.session import Session
+from tomo.core.session import Session
 
 
 logger = logging.getLogger(__name__)
@@ -76,6 +76,32 @@ class ActionRetrieveFareRules(Action):
             SlotSet(
                 key="fare_rules",
                 value=dummy_rules,
+                timestamp=time.time(),
+                metadata=None,
+            ),
+        ]
+
+
+class ActionCalculateRefundFee(Action):
+    name: typing.ClassVar[str] = "calculate_refund_fee"
+    description: typing.ClassVar[
+        str
+    ] = "Calculate the refund fee and the fee breakdown according to fare rules and refund reason"
+
+    @classmethod
+    def required_slots(cls):
+        return [
+            "refund_reason",
+            "fare_rules",
+        ]
+
+    async def run(
+        self, output_channel: OutputChannel, session: Session
+    ) -> typing.Optional[typing.List[Event]]:
+        return [
+            SlotSet(
+                key="refund_fee_breakdown",
+                value="refund fee is 150$",
                 timestamp=time.time(),
                 metadata=None,
             ),

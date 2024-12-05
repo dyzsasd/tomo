@@ -8,6 +8,8 @@ from tomo.shared.output_channel import OutputChannel
 class UserMessage(abc.ABC):
     """Represents an incoming message, including the channel for sending responses."""
 
+    parse_data: Optional[dict] = None
+
     @property
     @abc.abstractmethod
     def text(self) -> str:

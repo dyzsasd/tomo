@@ -5,7 +5,7 @@ from typing import List, Type
 from tomo.core.actions import Action
 from tomo.core.events import BotUttered, UserUttered
 from tomo.shared.exceptions import TomoFatalException
-from tomo.shared.session import Session
+from tomo.core.session import Session
 
 
 def generate_action_instruction(action: Type[Action]):
@@ -121,4 +121,4 @@ def json_generate_action_instruction(action: Type[Action]):
             "required arguments"
         ] = "No Arguments is needed to execute the action"
 
-    return json.dumps(instructions, indent=2)
+    return json.dumps(instructions)

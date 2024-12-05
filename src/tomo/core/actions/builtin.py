@@ -8,9 +8,9 @@ import typing
 from tomo.core.events import BotUttered, UserUttered, SlotSet, SlotUnset
 from tomo.nlu.models import Entity
 from tomo.shared.action import Action
-from tomo.shared.event import Event
+from tomo.core.events.base import Event
 from tomo.shared.output_channel import OutputChannel
-from tomo.shared.session import Session
+from tomo.core.session import Session
 
 
 logger = logging.getLogger(__name__)
@@ -118,9 +118,7 @@ class ActionExtractSlots(Action):
             return []
 
         events = []
-        new_entities: typing.List[Entity] = (
-            user_uttered and user_uttered.entities
-        ) or []
+        new_entities: typing.List[Entity] = user_uttered.entities or []
         for entity in new_entities:
             if entity.name not in session.slots:
                 logger.warning(

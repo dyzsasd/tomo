@@ -5,7 +5,7 @@ import typing
 from tomo.utils.json import JSONSerializableBase, JsonFormat
 
 if typing.TYPE_CHECKING:
-    from tomo.shared.session import Session  # Forward declaration for Event
+    from tomo.core.session import Session  # Forward declaration
 
 
 class Event(abc.ABC, JSONSerializableBase):
