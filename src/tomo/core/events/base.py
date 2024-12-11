@@ -1,15 +1,16 @@
 import abc
+from dataclasses import field
 from datetime import datetime, timezone
 import json
 import typing
 
-from tomo.utils.json import JSONSerializableBase, JsonFormat
+from tomo.utils.json import DataclassABC, JsonEngine
 
 if typing.TYPE_CHECKING:
     from tomo.core.session import Session  # Forward declaration
 
 
-class Event(abc.ABC, JSONSerializableBase):
+class Event(DataclassABC):
     """
     Base class for events that occur during a session.
 
@@ -18,8 +19,7 @@ class Event(abc.ABC, JSONSerializableBase):
     carries metadata and can be applied to the session to update its state.
     """
 
-    def __post_init__(self):
-        self.timestamp: datetime = lambda: datetime.now(timezone.utc)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     @abc.abstractmethod
     def apply_to(self, session: "Session") -> None:
@@ -45,7 +45,7 @@ class Event(abc.ABC, JSONSerializableBase):
 
     def as_dict(self) -> typing.Dict[str, typing.Any]:
         """Convert the event to a dictionary format for serialization."""
-        return JsonFormat.to_json(self)
+        return JsonEngine.to_json(self)
 
     def __eq__(self, other: typing.Any) -> bool:
         """Compare two events for equality based on their dictionary representation."""

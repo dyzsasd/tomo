@@ -4,10 +4,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
-from tomo.utils.json import json_serializable
 
-
-@json_serializable
 class Entity(BaseModel):
     name: str = Field(
         description="The entity name, which should be one of the value in Entity list."
@@ -18,14 +15,12 @@ class Entity(BaseModel):
     )
 
 
-@json_serializable
 class IntentExtraction(BaseModel):
     name: str = Field(
         description="The intent name, which should be one of the value in the intent list."
     )
 
 
-@json_serializable
 class NLUExtraction(BaseModel):
     intent: Optional[IntentExtraction] = Field(
         description="Intent detected from user's message with the conversation history, which could be omnit."
