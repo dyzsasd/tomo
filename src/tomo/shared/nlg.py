@@ -3,7 +3,7 @@ import logging
 from typing import Any, Optional
 
 from tomo.shared.bot_message import BotMessage
-from tomo.shared.session import Session
+from tomo.core.session import Session
 
 logger = logging.getLogger(__name__)
 

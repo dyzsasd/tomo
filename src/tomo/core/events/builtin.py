@@ -2,8 +2,11 @@ import logging
 import typing
 
 from tomo.nlu.models import Entity, IntentExtraction
-from tomo.shared.event import Event
-from tomo.shared.session import Session
+from tomo.core.events.base import Event
+from tomo.core.models import SessionStatus
+
+if typing.TYPE_CHECKING:
+    from tomo.core.session import Session
 
 
 logger = logging.getLogger(__name__)
@@ -218,4 +221,4 @@ class SessionDisabled(Event):
         Args:
             session: The session that will be reset.
         """
-        session.active = False
+        session.status = SessionStatus.ARCHIVED

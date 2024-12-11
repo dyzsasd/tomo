@@ -1,0 +1,720 @@
+# pylint: disable=C0301,W1401,C0103
+# Line too long
+
+import logging
+import typing
+
+from tomo.core.events import SlotSet
+from tomo.shared.action import Action
+from tomo.core.events.base import Event
+from tomo.shared.output_channel import OutputChannel
+from tomo.core.session import Session
+
+
+logger = logging.getLogger(__name__)
+
+
+class ActionParsePNR(Action):
+    name: typing.ClassVar[str] = "parse_pnr"
+    description: typing.ClassVar[
+        str
+    ] = "Parse the PNR information to retrieve the origin, destination, marketing_carrier and fare_basis_code"
+
+    @classmethod
+    def required_slots(cls):
+        return ["pnr_details"]
+
+    async def run(
+        self, output_channel: OutputChannel, session: Session
+    ) -> typing.Optional[typing.List[Event]]:
+        return [
+            SlotSet(
+                key="origin",
+                value="CDG",
+            ),
+            SlotSet(
+                key="destination",
+                value="JFK",
+            ),
+            SlotSet(
+                key="marketing_carrier",
+                value="AY",
+            ),
+            SlotSet(
+                key="fare_basis_code",
+                value="HLN0C5M8",
+            ),
+        ]
+
+
+class ActionRetrieveFareRules(Action):
+    name: typing.ClassVar[str] = "retrieve_fare_rule"
+    description: typing.ClassVar[str] = "Retrieve Fare rules by querying GDS API"
+
+    @classmethod
+    def required_slots(cls):
+        return [
+            "origin",
+            "destination",
+            "marketing_carrier",
+            "fare_basis_code",
+        ]
+
+    async def run(
+        self, output_channel: OutputChannel, session: Session
+    ) -> typing.Optional[typing.List[Event]]:
+        return [
+            SlotSet(
+                key="fare_rules",
+                value=dummy_rules,
+            ),
+        ]
+
+
+class ActionCalculateRefundFee(Action):
+    name: typing.ClassVar[str] = "calculate_refund_fee"
+    description: typing.ClassVar[
+        str
+    ] = "Calculate the refund fee and the fee breakdown according to fare rules and refund reason"
+
+    @classmethod
+    def required_slots(cls):
+        return [
+            "refund_reason",
+            "fare_rules",
+        ]
+
+    async def run(
+        self, output_channel: OutputChannel, session: Session
+    ) -> typing.Optional[typing.List[Event]]:
+        return [
+            SlotSet(
+                key="refund_fee_breakdown",
+                value="refund fee is 150$",
+            ),
+        ]
+
+
+dummy_rules = """
+<?xml version="1.0" encoding="UTF-8"?>
+<soap-env:Envelope xmlns:soap-env="http://schemas.xmlsoap.org/soap/envelope/">
+    <soap-env:Header>
+        <eb:MessageHeader xmlns:eb="http://www.ebxml.org/namespaces/messageHeader" eb:version="1.0" soap-env:mustUnderstand="1">
+            <eb:From>
+                <eb:PartyId eb:type="URI">webservices.sabre.com</eb:PartyId>
+            </eb:From>
+            <eb:To>
+                <eb:PartyId eb:type="URI">AA</eb:PartyId>
+            </eb:To>
+            <eb:CPAId>CQ9H</eb:CPAId>
+            <eb:ConversationId>A6FB626A-5B6C-460C-AEC4-48F513BBF700</eb:ConversationId>
+            <eb:Service eb:type="OTA"/>
+            <eb:Action>OTA_AirRulesLLSRS</eb:Action>
+            <eb:MessageData>
+                <eb:MessageId>2791864495149940950</eb:MessageId>
+                <eb:Timestamp>2024-11-19T13:45:15</eb:Timestamp>
+                <eb:RefToMessageId>mid:20230913-152200@AA</eb:RefToMessageId>
+            </eb:MessageData>
+        </eb:MessageHeader>
+        <wsse:Security xmlns:wsse="http://schemas.xmlsoap.org/ws/2002/12/secext">
+            <wsse:BinarySecurityToken valueType="String" EncodingType="wsse:Base64Binary">Shared/IDL:IceSess\/SessMgr:1\.0.IDL/Common/!ICESMS\/ACPCRTD!ICESMSLB\/CRT.LB!1732022371264!2799!541</wsse:BinarySecurityToken>
+        </wsse:Security>
+    </soap-env:Header>
+    <soap-env:Body>
+        <OTA_AirRulesRS xmlns="http://webservices.sabre.com/sabreXML/2011/10" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:stl="http://services.sabre.com/STL/v01" Version="2.3.0">
+            <stl:ApplicationResults status="Complete">
+                <stl:Success timeStamp="2024-11-19T07:45:15-06:00">
+                    <stl:SystemSpecificResults>
+                        <stl:HostCommand LNIATA="222222">RDCDGJFK18DEC24HLN0C5M8-AY</stl:HostCommand>
+                    </stl:SystemSpecificResults>
+                </stl:Success>
+            </stl:ApplicationResults>
+            <FareRuleInfo>
+                <Header>
+                    <Line Type="Legend">
+                        <Text>V FARE BASIS     BK    FARE   TRAVEL-TICKET AP  MINMAX  RTG</Text>
+                    </Line>
+                    <Line Type="Fare">
+                        <Text>1   HLN0C5M8       H O  1132.00     ----      -/  -/12M AT01</Text>
+                    </Line>
+                    <Line Type="Passenger Type">
+                        <Text>PASSENGER TYPE-ADT                 AUTO PRICE-YES</Text>
+                    </Line>
+                    <Line Type="Origin Destination">
+                        <Text>FROM-PAR TO-NYC    CXR-AY    TVL-18DEC24  RULE-J603 IPRA/1</Text>
+                    </Line>
+                    <Line Type="Fare Basis">
+                        <Text>FARE BASIS-HLN0C5M8          SPECIAL FARE  DIS-N   VENDOR-ATP</Text>
+                    </Line>
+                    <Line Type="Fare Type">
+                        <Text>FARE TYPE-EOF      OW-ECONOMY SELL-UP OW FLEX</Text>
+                    </Line>
+                    <Line Type="Currency">
+                        <Text>EUR  1074.00   MPM  E24JUL24 D-INFINITY   FC-HLN0C5M8  FN-</Text>
+                    </Line>
+                    <Line Type="System Dates">
+                        <Text>SYSTEM DATES - CREATED 23JUL24/0620  EXPIRES INFINITY</Text>
+                    </Line>
+                    <ParsedData>
+                        <CurrencyLine>
+                            <Amount>1074.00</Amount>
+                            <CurrencyCode>EUR</CurrencyCode>
+                            <Discontinue>INFINITY</Discontinue>
+                            <Effective>2024-07-24</Effective>
+                            <FareClass>HLN0C5M8</FareClass>
+                            <RoutingNumberOrMPM>MPM</RoutingNumberOrMPM>
+                        </CurrencyLine>
+                        <FareBasisLine>
+                            <DisplayType Code="N"/>
+                            <FareBasis Code="HLN0C5M8"/>
+                            <FareVendor>ATP</FareVendor>
+                            <Text>SPECIAL FARE</Text>
+                        </FareBasisLine>
+                        <FareTypeLine>
+                            <FareDescription Code="OW">ECONOMY SELL-UP OW FLEX</FareDescription>
+                            <FareType>EOF</FareType>
+                        </FareTypeLine>
+                        <OriginDestinationLine>
+                            <Airline Code="AY"/>
+                            <DestinationLocation LocationCode="NYC"/>
+                            <OriginLocation LocationCode="PAR"/>
+                            <Rule>J603</Rule>
+                            <TariffDescriptionNumber>IPRA/1</TariffDescriptionNumber>
+                            <TravelDate>2024-12-18</TravelDate>
+                        </OriginDestinationLine>
+                        <PassengerTypeLine>
+                            <AutoPrice>YES</AutoPrice>
+                            <PassengerType Code="ADT"/>
+                        </PassengerTypeLine>
+                        <SystemDatesLine>
+                            <CreateDateTime>2024-07-23T06:20</CreateDateTime>
+                            <ExpireDateTime>INFINITY</ExpireDateTime>
+                        </SystemDatesLine>
+                    </ParsedData>
+                </Header>
+                <Rules>
+                    <Paragraph RPH="50" Title="RULE APPLICATION AND OTHER CONDITIONS">
+                        <Text>NOTE - THE FOLLOWING TEXT IS INFORMATIONAL AND NOT
+VALIDATED FOR AUTOPRICING.
+PREMIUM ECONOMY/ECONOMY CLASS TRANSATLANTIC FARES
+APPLICATION
+AREA
+THESE FARES APPLY
+BETWEEN AREA 1/AREA 2.
+CLASS OF SERVICE
+THESE FARES APPLY FOR ECONOMY/PREMIUM ECONOMY
+CLASS SERVICE.
+TYPES OF TRANSPORTATION
+FARES GOVERNED BY THIS RULE CAN BE USED TO CREATE
+ROUND-TRIP/CIRCLE-TRIP/OPEN-JAW JOURNEYS.
+THE TICKET IS INVALID FOR TRAVEL IF FLIGHT
+COUPONS ARE NOT USED IN SEQUENCE.
+CAPACITY LIMITATIONS
+THE CARRIER SHALL LIMIT THE NUMBER OF PASSENGERS
+CARRIED ON ANY ONE FLIGHT AT FARES GOVERNED BY
+THIS RULE AND SUCH FARES WILL NOT NECESSARILY BE
+AVAILABLE ON ALL FLIGHTS. THE NUMBER OF SEATS,
+WHICH THE CARRIER SHALL MAKE AVAILABLE ON A GIVEN
+FLIGHT, WILL BE DETERMINED BY THE CARRIER'S BEST
+JUDGEMENT.
+RULES NOT APPLICABLE
+35 PASSENGER EXPENSES EN ROUTE.</Text>
+                    </Paragraph>
+                    <Paragraph RPH="01" Title="ELIGIBILITY">
+                        <Text>NO ELIGIBILITY REQUIREMENTS APPLY.</Text>
+                    </Paragraph>
+                    <Paragraph RPH="02" Title="DAY/TIME">
+                        <Text>NO DAY/TIME TRAVEL RESTRICTIONS APPLY.</Text>
+                    </Paragraph>
+                    <Paragraph RPH="03" Title="SEASONALITY">
+                        <Text>FROM FRANCE -
+PERMITTED 30DEC23 THROUGH 31MAR24 OR 04NOV24 THROUGH
+19DEC24 OR 28DEC24 THROUGH 30MAR25 OR 03NOV25
+THROUGH 18DEC25 FOR EACH TRANSATLANTIC SECTOR.
+SEASON IS BASED ON TRIP DATE.
+TO FRANCE -
+PERMITTED 09JAN24 THROUGH 08APR24 OR 10NOV24 THROUGH
+28DEC24 OR 08JAN25 THROUGH 06APR25 FOR EACH
+TRANSATLANTIC SECTOR. SEASON IS BASED ON TRIP DATE.</Text>
+                    </Paragraph>
+                    <Paragraph RPH="04" Title="FLIGHT APPLICATION">
+                        <Text>IF THE FARE COMPONENT INCLUDES TRAVEL WITHIN AREA 1
+THEN THAT TRAVEL MUST BE ON
+ONE OR MORE OF THE FOLLOWING
+ANY AY FLIGHT
+ANY AA FLIGHT OPERATED BY AA
+ANY AS FLIGHT OPERATED BY AS
+ANY CX FLIGHT OPERATED BY CX
+ANY WS FLIGHT OPERATED BY WS
+ANY B6 FLIGHT OPERATED BY B6.
+AND
+IF THE FARE COMPONENT INCLUDES TRAVEL BETWEEN CANADA
+AND UNITED STATES/MEXICO
+THEN THAT TRAVEL MUST NOT BE ON
+ONE OR MORE OF THE FOLLOWING
+ANY WS FLIGHT.
+AND
+IF THE FARE COMPONENT INCLUDES TRAVEL BETWEEN HAWAII
+AND CONTIGUOUS U.S.A./CANADA
+THEN THAT TRAVEL MUST NOT BE ON
+ONE OR MORE OF THE FOLLOWING
+ANY WS FLIGHT.
+AND
+IF THE FARE COMPONENT INCLUDES TRAVEL BETWEEN NORTH
+AMERICA AND INTERNATIONAL POINTS IN THE CARIBBEAN AREA/
+SOUTH AMERICA
+THEN THAT TRAVEL MUST NOT BE ON
+ONE OR MORE OF THE FOLLOWING
+ANY WS FLIGHT.
+AND
+IF THE FARE COMPONENT INCLUDES TRAVEL BETWEEN AREA 1
+AND AREA 2
+THEN THAT TRAVEL MUST BE ON
+ONE OR MORE OF THE FOLLOWING
+ANY AY FLIGHT.
+AND
+IF THE FARE COMPONENT INCLUDES TRAVEL WITHIN SWEDEN
+THEN THAT TRAVEL MUST BE ON
+ONE OR MORE OF THE FOLLOWING
+ANY AY FLIGHT
+ANY TF FLIGHT OPERATED BY TF.
+AND
+IF THE FARE COMPONENT INCLUDES TRAVEL WITHIN AREA 2
+THEN THAT TRAVEL MUST BE ON
+ONE OR MORE OF THE FOLLOWING
+ANY AY FLIGHT OPERATED BY AY
+ANY AY FLIGHT OPERATED BY BA
+ANY AY FLIGHT OPERATED BY IB
+ANY BA FLIGHT OPERATED BY BA
+ANY IB FLIGHT OPERATED BY IB
+ANY IB FLIGHT OPERATED BY I2
+ANY W2 FLIGHT OPERATED BY W2
+ANY DX FLIGHT OPERATED BY DX
+ANY EI FLIGHT OPERATED BY EI
+ANY AT FLIGHT OPERATED BY AT.</Text>
+                    </Paragraph>
+                    <Paragraph RPH="05" Title="ADVANCE RESERVATIONS/TICKETING">
+                        <Text>CONFIRMED RESERVATIONS ARE REQUIRED FOR ALL SECTORS.
+TICKETING MUST BE COMPLETED WITHIN 3 DAYS AFTER
+RESERVATIONS ARE MADE OR AT LEAST 3 DAYS BEFORE
+DEPARTURE WHICHEVER IS EARLIER.
+OR - CONFIRMED RESERVATIONS ARE REQUIRED FOR ALL
+SECTORS.
+TICKETING MUST BE COMPLETED WITHIN 1 DAY AFTER
+RESERVATIONS ARE MADE.
+NOTE - TEXT BELOW NOT VALIDATED FOR AUTOPRICING.
+DUE TO TTL ROBOT PROCESS DIFFERENCES MAY EXIST
+BETWEEN THE CRS LAST TICKETING DATE AND TTL ROBOT
+REMARK.
+THE INFORMATION BY SSR IN THE PNR PREVAILS.</Text>
+                    </Paragraph>
+                    <Paragraph RPH="06" Title="MINIMUM STAY">
+                        <Text>NO MINIMUM STAY REQUIREMENTS APPLY.</Text>
+                    </Paragraph>
+                    <Paragraph RPH="07" Title="MAXIMUM STAY">
+                        <Text>TRAVEL FROM LAST STOPOVER MUST COMMENCE NO LATER THAN
+MIDNIGHT 12 MONTHS AFTER DEPARTURE FROM FARE ORIGIN.</Text>
+                    </Paragraph>
+                    <Paragraph RPH="08" Title="STOPOVERS">
+                        <Text>UNLIMITED STOPOVERS PERMITTED ON THE OUTBOUND AND ON
+THE INBOUND FARE COMPONENTS AT EUR 300.00 EACH IN AREA
+1/AREA 2.</Text>
+                    </Paragraph>
+                    <Paragraph RPH="09" Title="TRANSFERS">
+                        <Text>2 TRANSFERS PERMITTED IN EACH DIRECTION.
+2 PERMITTED IN EUROPE IN EACH DIRECTION.
+AND - 2 TRANSFERS PERMITTED IN EACH DIRECTION.
+2 PERMITTED VIA AA/AY/CX/WS ONLY IN NORTH
+AMERICA IN EACH DIRECTION
+2 PERMITTED BETWEEN AA/AY AND AS IN LAX/SEA
+IN EACH DIRECTION
+1 PERMITTED BETWEEN AY AND B6 IN NYC/EWR IN
+EACH DIRECTION.
+FARE BREAK SURFACE SECTORS NOT PERMITTED AND
+EMBEDDED SURFACE SECTORS PERMITTED ON THE FARE
+COMPONENT.</Text>
+                    </Paragraph>
+                    <Paragraph RPH="10" Title="COMBINATIONS">
+                        <Text>END-ON-END NOT PERMITTED. SIDE TRIPS NOT PERMITTED.
+OPEN JAWS
+FARES MAY BE COMBINED ON A HALF ROUND TRIP BASIS
+-TO FORM SINGLE OR DOUBLE OPEN JAWS
+MILEAGE OF THE OPEN SEGMENT MUST BE EQUAL/LESS THAN
+MILEAGE OF THE LONGEST FLOWN FARE COMPONENT.
+PROVIDED -
+WHEN THE OPEN SEGMENT OCCURS
+-WITHIN EUROPE OR WITHIN NORTH AMERICA
+COMBINATIONS ARE WITH ANY FARE FOR CARRIER AY/AA/
+BA/IB IN ANY RULE AND TARIFF.
+ROUND TRIPS/CIRCLE TRIPS
+FARES MAY BE COMBINED ON A HALF ROUND TRIP BASIS
+-TO FORM ROUND TRIPS
+-TO FORM CIRCLE TRIPS EXCEPT FOR AROUND-THE-WORLD
+FARES
+A MAXIMUM OF TWO INTERNATIONAL FARE COMPONENTS
+PERMITTED.
+PROVIDED -
+COMBINATIONS ARE WITH ANY FARE FOR CARRIER AY/AA/
+BA/IB IN ANY RULE AND TARIFF.</Text>
+                    </Paragraph>
+                    <Paragraph RPH="11" Title="BLACKOUT DATES">
+                        <Text>NO BLACKOUT DATES APPLY.</Text>
+                    </Paragraph>
+                    <Paragraph RPH="12" Title="SURCHARGES">
+                        <Text>FARE RULE
+IF INFANT WITHOUT A SEAT PSGR UNDER 2.
+OR - CONTRACT BULK INFANT PSGR UNDER 2.
+OR - MILITARY INFANT WITHOUT A SEAT UNDER 2.
+OR - INCLUSIVE TOUR INFANT WITHOUT A SEAT PSGR UNDER 2.
+THERE IS NO MISCELLANEOUS/OTHER SURCHARGE PER ANY
+PASSENGER.
+NOTE - TEXT BELOW NOT VALIDATED FOR AUTOPRICING.
+SURCHARGES DO NOT APPLY TO INFANT PASSENGERS NOT
+OCCUPYING A SEAT
+MISCELLANEOUS/OTHER SURCHARGE OF GBP 37.00 PER ROUND
+TRIP WILL BE ADDED TO THE APPLICABLE FARE PER ANY
+PASSENGER WHEN SECTOR OF TRAVEL IS BETWEEN LGW AIRPORT
+AND LAS.
+GENERAL RULE - APPLY UNLESS OTHERWISE SPECIFIED
+THE PROVISIONS BELOW APPLY ONLY AS FOLLOWS -
+TICKETS MUST BE ISSUED ON THE STOCK OF AY OR AA.
+OR - TICKETS MUST BE ISSUED ON THE STOCK OF AY OR BA.
+OR - TICKETS MUST BE ISSUED ON THE STOCK OF AY OR IB.
+THERE IS NO FUEL SURCHARGE PER COUPON PER ANY
+PASSENGER FOR ALL INTERNATIONAL SECTORS.
+OTHERWISE - ORIGINATING EUROPE -
+MISCELLANEOUS/OTHER SURCHARGE OF EUR 220.00 PER
+DIRECTION WILL BE ADDED TO THE APPLICABLE FARE PER
+ANY PASSENGER.
+NOTE - TEXT BELOW NOT VALIDATED FOR AUTOPRICING.
+CHILD DISCOUNT DOES NOT APPLY.
+AND - ORIGINATING UNITED STATES -
+MISCELLANEOUS/OTHER SURCHARGE OF USD 250.00 PER
+DIRECTION WILL BE ADDED TO THE APPLICABLE FARE PER
+ANY PASSENGER.
+NOTE - TEXT BELOW NOT VALIDATED FOR AUTOPRICING.
+CHILD DISCOUNT DOES NOT APPLY.</Text>
+                    </Paragraph>
+                    <Paragraph RPH="13" Title="ACCOMPANIED TRAVEL">
+                        <Text>ACCOMPANIED TRAVEL NOT REQUIRED.</Text>
+                    </Paragraph>
+                    <Paragraph RPH="14" Title="TRAVEL RESTRICTIONS">
+                        <Text>NO TRAVEL DATE RESTRICTIONS APPLY.</Text>
+                    </Paragraph>
+                    <Paragraph RPH="15" Title="SALES RESTRICTIONS">
+                        <Text>FARE RULE
+TICKETS MUST BE ISSUED ON THE STOCK OF AY OR AA.
+TICKETS MAY NOT BE ISSUED BY PTA. TICKETS MUST BE
+ISSUED BY ELECTRONIC TICKETING. EXTENSION OF TICKET
+VALIDITY IS NOT PERMITTED.
+OR - TICKETS MUST BE ISSUED ON THE STOCK OF AY OR IB.
+TICKETS MAY NOT BE ISSUED BY PTA. TICKETS MUST BE
+ISSUED BY ELECTRONIC TICKETING. EXTENSION OF
+TICKET VALIDITY IS NOT PERMITTED.
+OR - TICKETS MUST BE ISSUED ON THE STOCK OF AY OR BA.
+TICKETS MAY NOT BE ISSUED BY PTA. TICKETS MUST BE
+ISSUED BY ELECTRONIC TICKETING. EXTENSION OF
+TICKET VALIDITY IS NOT PERMITTED.
+GENERAL RULE - APPLY UNLESS OTHERWISE SPECIFIED
+TICKETS MAY NOT BE SOLD IN VENEZUELA/NIGERIA/ANGOLA/
+EGYPT/RUSSIA/E URAL RUSSIA.
+TICKETS MAY ONLY BE SOLD IN AREA 1/AREA 2/AREA 3.</Text>
+                    </Paragraph>
+                    <Paragraph RPH="16" Title="PENALTIES">
+                        <Text>CHANGES
+ANY TIME
+CHANGES PERMITTED FOR REISSUE/REVALIDATION.
+NOTE - TEXT BELOW NOT VALIDATED FOR AUTOPRICING.
+THE TICKET MUST BE REVALIDATED OR REISSUED AT THE
+SAME TIME WHEN THE BOOKING IS CHANGED.
+----------
+WHEN COMBINING ON A HALF ROUNDTRIP  BASIS THE
+PENALTY RULES FOR EACH FARE COMPONENT APPLY.
+CHARGE HIGHEST PENALTY FEE OF ALL CHANGED FARE
+COMPONENTS.
+----------
+IN CASE OF REISSUE-REROUTING/UPGRADE-
+WHEN THE FIRST FARE COMPONENT IS CHANGED CURRENT
+FARES VALID AT THE TIME OF REISSUE MUST BE USED.
+OTHERWISE HISTORICAL FARES VALID AT THE TIME OF
+ISSUANCE OF PREVIOUS TICKET MUST BE USED.
+----------
+FARE DIFFERENCE WILL BE COLLECTED.
+----------
+WHEN NEW ITINERARY RESULTS IN HIGHER FARE
+DIFFERENCE HAS TO BE COLLECTED.
+WHEN NEW ITINERARY RESULTS IN LOWER FARE THE
+DIFFERENCE WILL BE REFUNDED - BUT DOWNGRADE IS
+NOT PERMITTED.
+----------
+ALL PROVISIONS OF THE NEW FARE MUST BE COMPLIED
+WITH
+----------
+ONCE A FARE COMPONENT HAS BEEN COMPLETED FARE
+BREAK POINTS CAN NOT BE CHANGED.
+----------
+NO SHOW - NOT PERMITTED
+----------
+IF PASSENGER IS NO SHOW - FINNAIR HAS A RIGHT
+TO CANCEL ONWARD OR RETURN RESERVATION.
+----------
+NAME CHANGE. CHANGE OF PASSENGER ALLOWED BEFORE
+DEPARTURE OF THE FIRST FLIGHT SEGMENT FOR FEE
+400.00 EURO OR EQUIVALENT IN LOCAL CURRENCY TO BE
+COLLECTED ON EMD.
+ONLY ALLOWED WHEN WHOLE ITINERARY AND FLIGHTS IN
+THE PNR ARE MARKETED BY AY AND OPERATED BY
+AY/TF/WF OR NORDIC REGIONAL AIRLINES.
+CANCELLATIONS
+BEFORE DEPARTURE
+CANCELLATIONS PERMITTED FOR CANCEL/REFUND.
+NOTE - TEXT BELOW NOT VALIDATED FOR AUTOPRICING.
+FARE COMPONENT IS FULLY REFUNDABLE.
+----------
+UNUSED YR/YQ FEES WILL BE REFUNDED.
+----------
+WHEN COMBINING NON-REFUNDABLE FARES WITH
+REFUNDABLE FARES
+1. THE AMOUNT PAID ON EACH REFUNDABLE FARE
+COMPONENT IS REFUNDED.
+2. THE AMOUNT PAID ON EACH NON-REFUNDABLE FARE
+COMPONENT WILL NOT BE REFUNDED.
+3. WHEN COMBINING FARES CHARGE THE SUM OF THE
+CANCELLATION FEES OF ALL CANCELLED FARE
+COMPONENTS.
+----------
+NO SHOW - NOT PERMITTED.
+AFTER DEPARTURE
+TICKET IS NON-REFUNDABLE.
+NOTE - TEXT BELOW NOT VALIDATED FOR AUTOPRICING.
+FARE COMPONENT IS NON-REFUNDABLE.
+----------
+UNUSED YR/YQ FEES ARE NON-REFUNDABLE.
+----------
+WHEN COMBINING NON-REFUNDABLE FARES WITH
+REFUNDABLE FARES
+1. THE AMOUNT PAID ON EACH REFUNDABLE FARE
+COMPONENT IS REFUNDED.
+2. THE AMOUNT PAID ON EACH NON-REFUNDABLE FARE
+COMPONENT WILL NOT BE REFUNDED.
+3. WHEN COMBINING FARES CHARGE THE SUM OF THE
+CANCELLATION FEES OF ALL CANCELLED FARE
+COMPONENTS.
+----------
+FULL REFUND PERMITTED IN CASE OF-
+- REJECTION OF VISA. EMBASSY STATEMENT REQUIRED.
+- DEATH OF PASSENGER OR FAMILY MEMBER.
+WAIVERS MUST BE EVIDENCED BY DEATH CERTIFICATE.
+----------
+NO SHOW - NOT PERMITTED.</Text>
+                    </Paragraph>
+                    <Paragraph RPH="17" Title="HIP/MILEAGE EXCEPTIONS">
+                        <Text>THE HIGHER INTERMEDIATE POINT RULE DOES NOT APPLY FOR
+CONNECTIONS.
+AND - THE HIGHER INTERMEDIATE POINT RULE DOES NOT APPLY
+FOR STOPOVERS.</Text>
+                    </Paragraph>
+                    <Paragraph RPH="18" Title="TICKET ENDORSEMENTS">
+                        <Text>THE ORIGINAL AND THE REISSUED TICKET MUST BE ANNOTATED
+- RESTRICTIONS MAY APPLY - IN THE ENDORSEMENT BOX.</Text>
+                    </Paragraph>
+                    <Paragraph RPH="19" Title="CHILDREN DISCOUNTS">
+                        <Text>CNN/ACCOMPANIED CHILD PSGR 2-11 - CHARGE 75 PERCENT OF
+THE FARE.
+TICKET DESIGNATOR - CH.
+MUST BE ACCOMPANIED ON ALL FLIGHTS IN THE SAME
+COMPARTMENT BY ADULT PSGR 12 OR OLDER.
+OR - 1ST INF/INFANT WITHOUT A SEAT PSGR UNDER 2 -
+CHARGE 10 PERCENT OF THE FARE.
+TICKET DESIGNATOR - IN.
+MUST BE ACCOMPANIED ON ALL FLIGHTS IN THE SAME
+COMPARTMENT BY ADULT PSGR 12 OR OLDER.
+OR - INS/INFANT WITH A SEAT PSGR UNDER 2 - CHARGE 75
+PERCENT OF THE FARE.
+TICKET DESIGNATOR - CH.
+MUST BE ACCOMPANIED ON ALL FLIGHTS IN THE SAME
+COMPARTMENT BY ADULT PSGR 12 OR OLDER.
+OR - UNN/UNACCOMPANIED CHILD PSGR 5-11 - CHARGE 100
+PERCENT OF THE FARE.
+TICKET DESIGNATOR - UM.
+NOTE - TEXT BELOW NOT VALIDATED FOR AUTOPRICING.
+BELOW UM FEE WILL BE APPLICABLE PER DIRECTION
+WITHIN FINLAND SCANDINAVIA AND BALTICS - EUR40.00
+REST OF EUROPE - EUR60.00
+LONG HAULS - EUR120.00
+UM ALLOWED ONLY ON AY MARKETED AND OPERATED
+FLIGHTS</Text>
+                    </Paragraph>
+                    <Paragraph RPH="20" Title="TOUR CONDUCTOR DISCOUNTS">
+                        <Text>NO DISCOUNTS FOR TOUR CONDUCTORS.</Text>
+                    </Paragraph>
+                    <Paragraph RPH="21" Title="AGENT DISCOUNTS">
+                        <Text>NO DISCOUNTS FOR SALE AGENTS.</Text>
+                    </Paragraph>
+                    <Paragraph RPH="22" Title="ALL OTHER DISCOUNTS">
+                        <Text>NO DISCOUNTS FOR OTHERS.</Text>
+                    </Paragraph>
+                    <Paragraph RPH="23" Title="MISCELLANEOUS PROVISIONS">
+                        <Text>THIS FARE MUST NOT BE USED AS THROUGH FARE WITH A
+DIFFERENTIAL AND/OR TO CALCULATE DIFFERENTIAL.</Text>
+                    </Paragraph>
+                    <Paragraph RPH="25" Title="FARE BY RULE">
+                        <Text>NOT APPLICABLE.</Text>
+                    </Paragraph>
+                    <Paragraph RPH="26" Title="GROUPS">
+                        <Text>NO GROUP PROVISIONS APPLY.</Text>
+                    </Paragraph>
+                    <Paragraph RPH="27" Title="TOURS">
+                        <Text>NO TOUR PROVISIONS APPLY.</Text>
+                    </Paragraph>
+                    <Paragraph RPH="28" Title="VISIT ANOTHER COUNTRY">
+                        <Text>NO VISIT ANOTHER COUNTRY PROVISIONS APPLY.</Text>
+                    </Paragraph>
+                    <Paragraph RPH="29" Title="DEPOSITS">
+                        <Text>NO DEPOSIT PROVISIONS APPLY.</Text>
+                    </Paragraph>
+                    <Paragraph RPH="31" Title="VOLUNTARY CHANGES">
+                        <Text>ENTER RD*31 OR RDLINE NUM*31 FOR VOLUNTARY CHGS.</Text>
+                    </Paragraph>
+                    <Paragraph RPH="33" Title="VOLUNTARY REFUNDS">
+                        <Text>IN THE EVENT OF REFUND TO TICKETED FLIGHTS
+BEFORE DEPARTURE OF JOURNEY AND PRIOR TO 12 MONTHS
+AFTER TICKET ISSUE DATE AND ANYTIME BEFORE
+DEPARTURE OF FIRST UNFLOWN SECTOR OF FARE
+COMPONENT
+NO CHARGE
+COLLECT PER FARE COMPONENT AND IN CASE OF PU/FC
+MIXTURE WITHIN PRICING UNIT ONLY HIGHEST PENALTY
+APPLIES FOR THE PRICING UNIT - NO DISCOUNTS TO FEES
+APPLY
+WHEN REPRICING FLOWN PORTIONS:
+1. FARE BREAK POINTS MAY NOT BE CHANGED
+2. FARE TYPES BOF/BRF/BT/EOF/ERF/ET/FOF/FRF/FS/WT/
+ZOF/ZRF ARE USED
+3. NORMAL OR SPECIAL FARES ARE USED
+4. REPRICE FARE MUST BE EQUAL OR HIGHER THAN
+ORIGINAL FARE ON THE REPRICED FARE COMPONENT
+5. RBD OF THE REPLACING FARE MUST BE THE SAME OR
+HIGHER THAN RBD OF THE PREVIOUS FARE
+REFUND VIA ORIGINAL FORM OF PAYMENT.
+OR -
+BEFORE DEPARTURE OF JOURNEY AND PRIOR TO 12 MONTHS
+AFTER TICKET ISSUE DATE AND ANYTIME BEFORE
+DEPARTURE OF FIRST UNFLOWN SECTOR OF FARE
+COMPONENT
+NO CHARGE
+COLLECT PER FARE COMPONENT AND IN CASE OF PU/FC
+MIXTURE WITHIN PRICING UNIT ONLY HIGHEST PENALTY
+APPLIES FOR THE PRICING UNIT - NO DISCOUNTS TO FEES
+APPLY
+WHEN REPRICING FLOWN PORTIONS:
+1. FARE BREAK POINTS MAY NOT BE CHANGED
+2. FARE TYPES BCF/BU/ECF/EU/FCF/FU/WU/ZCF ARE
+USED
+3. NORMAL OR SPECIAL FARES ARE USED
+4. REPRICE FARE MUST BE EQUAL OR HIGHER THAN
+ORIGINAL FARE ON THE REPRICED FARE COMPONENT
+5. RBD OF THE REPLACING FARE MUST BE THE SAME OR
+HIGHER THAN RBD OF THE PREVIOUS FARE
+REFUND VIA ORIGINAL FORM OF PAYMENT.
+OR -
+BEFORE DEPARTURE OF JOURNEY AND PRIOR TO 12 MONTHS
+AFTER TICKET ISSUE DATE AND ANYTIME AFTER
+DEPARTURE OF EACH UNFLOWN SECTOR OF FARE
+COMPONENT
+REFUNDS NOT PERMITTED TO THE FARE COMPONENT
+COLLECT PER FARE COMPONENT AND IN CASE OF PU/FC
+MIXTURE WITHIN PRICING UNIT ONLY HIGHEST PENALTY
+APPLIES FOR THE PRICING UNIT - NO DISCOUNTS TO FEES
+APPLY
+WHEN REPRICING FLOWN PORTIONS:
+1. FARE BREAK POINTS MAY NOT BE CHANGED
+2. REPRICE FARE MUST BE MADE IN ANY ATPCO PUBLIC
+OR PRIVATE TARIFF NUMBER
+3. FARE TYPES BOF/BRF/BT/EOF/ERF/ET/FOF/FRF/FS/WT/
+ZOF/ZRF ARE USED
+4. NORMAL OR SPECIAL FARES ARE USED
+5. REPRICE FARE MUST BE EQUAL OR HIGHER THAN
+ORIGINAL FARE ON THE REPRICED FARE COMPONENT
+6. RBD OF THE REPLACING FARE MUST BE THE SAME OR
+HIGHER THAN RBD OF THE PREVIOUS FARE
+REFUND VIA ORIGINAL FORM OF PAYMENT.
+OR -
+BEFORE DEPARTURE OF JOURNEY AND PRIOR TO 12 MONTHS
+AFTER TICKET ISSUE DATE AND ANYTIME AFTER
+DEPARTURE OF EACH UNFLOWN SECTOR OF FARE
+COMPONENT
+REFUNDS NOT PERMITTED TO THE FARE COMPONENT
+COLLECT PER FARE COMPONENT AND IN CASE OF PU/FC
+MIXTURE WITHIN PRICING UNIT ONLY HIGHEST PENALTY
+APPLIES FOR THE PRICING UNIT - NO DISCOUNTS TO FEES
+APPLY
+WHEN REPRICING FLOWN PORTIONS:
+1. FARE BREAK POINTS MAY NOT BE CHANGED
+2. REPRICE FARE MUST BE MADE IN ANY ATPCO PUBLIC
+OR PRIVATE TARIFF NUMBER
+3. FARE TYPES BCF/BU/ECF/EU/FCF/FU/WU/ZCF ARE
+USED
+4. NORMAL OR SPECIAL FARES ARE USED
+5. REPRICE FARE MUST BE EQUAL OR HIGHER THAN
+ORIGINAL FARE ON THE REPRICED FARE COMPONENT
+6. RBD OF THE REPLACING FARE MUST BE THE SAME OR
+HIGHER THAN RBD OF THE PREVIOUS FARE
+REFUND VIA ORIGINAL FORM OF PAYMENT.
+OR -
+AFTER DEPARTURE OF JOURNEY AND PRIOR TO 12 MONTHS
+AFTER TICKET ISSUE DATE
+REFUNDS NOT PERMITTED TO THE FARE COMPONENT
+COLLECT PER FARE COMPONENT AND IN CASE OF PU/FC
+MIXTURE WITHIN PRICING UNIT ONLY HIGHEST PENALTY
+APPLIES FOR THE PRICING UNIT - NO DISCOUNTS TO FEES
+APPLY
+WHEN REPRICING FLOWN PORTIONS:
+1. FARE BREAK POINTS MAY NOT BE CHANGED
+2. REPRICE FARE MUST BE MADE IN ANY ATPCO PUBLIC
+OR PRIVATE TARIFF NUMBER
+3. FARE TYPES BOF/BRF/BT/EOF/ERF/ET/FOF/FRF/FS/WT/
+ZOF/ZRF ARE USED
+4. NORMAL OR SPECIAL FARES ARE USED
+5. REPRICE FARE MUST BE EQUAL OR HIGHER THAN
+ORIGINAL FARE ON THE REPRICED FARE COMPONENT
+6. RBD OF THE REPLACING FARE MUST BE THE SAME OR
+HIGHER THAN RBD OF THE PREVIOUS FARE
+REFUND VIA ORIGINAL FORM OF PAYMENT.
+OR -
+AFTER DEPARTURE OF JOURNEY AND PRIOR TO 12 MONTHS
+AFTER TICKET ISSUE DATE
+REFUNDS NOT PERMITTED TO THE FARE COMPONENT
+COLLECT PER FARE COMPONENT AND IN CASE OF PU/FC
+MIXTURE WITHIN PRICING UNIT ONLY HIGHEST PENALTY
+APPLIES FOR THE PRICING UNIT - NO DISCOUNTS TO FEES
+APPLY
+WHEN REPRICING FLOWN PORTIONS:
+1. FARE BREAK POINTS MAY NOT BE CHANGED
+2. REPRICE FARE MUST BE MADE IN ANY ATPCO PUBLIC
+OR PRIVATE TARIFF NUMBER
+3. FARE TYPES BCF/BU/ECF/EU/FCF/FU/WU/ZCF ARE
+USED
+4. NORMAL OR SPECIAL FARES ARE USED
+5. REPRICE FARE MUST BE EQUAL OR HIGHER THAN
+ORIGINAL FARE ON THE REPRICED FARE COMPONENT
+6. RBD OF THE REPLACING FARE MUST BE THE SAME OR
+HIGHER THAN RBD OF THE PREVIOUS FARE
+REFUND VIA ORIGINAL FORM OF PAYMENT.</Text>
+                    </Paragraph>
+                    <Paragraph RPH="35" Title="NEGOTIATED FARES">
+                        <Text>NOT APPLICABLE.</Text>
+                    </Paragraph>
+                    <Paragraph RPH="RR" Title="AGENCY RETAILER INFORMATION">
+                        <Text>NOT APPLICABLE</Text>
+                    </Paragraph>
+                    <Paragraph RPH="IC" Title="INTERNATIONAL CONSTRUCTION">
+                        <Text>NOT A CONSTRUCTED FARE
+.</Text>
+                    </Paragraph>
+                </Rules>
+            </FareRuleInfo>
+        </OTA_AirRulesRS>
+    </soap-env:Body>
+</soap-env:Envelope>
+"""

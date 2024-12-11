@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 import os
 from typing import Optional, Dict, Any, List
@@ -55,7 +55,7 @@ class BaseLLMComponent:
         directory_path = os.path.join("session_logs", str(session_id))
         os.makedirs(directory_path, exist_ok=True)
 
-        timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
+        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")
         for idx, content in enumerate(prompts):
             prompt_type = "system" if idx == 0 else "user"
             filename = f"session_logs/{session_id}/{timestamp}-{prefix}_{prompt_type}_prompt.txt"

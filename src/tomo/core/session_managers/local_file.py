@@ -1,151 +1,26 @@
+from copy import deepcopy
+from datetime import datetime, timezone
+import glob
 import json
 import logging
 import os
 import time
-from copy import deepcopy
+from typing import Optional
 from pathlib import Path
-from typing import Optional, Dict, List
-import glob
 
 from aiofiles import open as aio_open
 from aiofiles.os import remove as aio_remove
 
 from tomo.assistant import Assistant
-from tomo.core.events import BotUttered, UserUttered
-from tomo.shared.event import Event
-from tomo.shared.exceptions import TomoFatalException, TomoException
-from tomo.shared.session import Session
-from tomo.shared.session_manager import SessionManager
-from tomo.shared.slots import Slot
+from tomo.core.models import SessionStatus
+from tomo.core.session import Session
+from tomo.shared.exceptions import TomoException
 from tomo.utils.json import JsonFormat
+
+from .base import SessionManager
 
 
 logger = logging.getLogger(__name__)
-
-
-class FileSession(Session):
-    """Session implementation that works with FileSessionManager"""
-
-    def __init__(
-        self,
-        session_manager: "FileSessionManager",
-        session_id: str,
-        max_event_history: Optional[int] = None,
-        slots: Optional[Dict[str, Slot]] = None,
-    ) -> None:
-        """
-        Initialize a file-based session
-
-        Args:
-            session_manager: The FileSessionManager instance
-            session_id: Unique identifier for the session
-            max_event_history: Maximum number of events to store
-            slots: Dictionary of slots for the session
-        """
-        super().__init__(
-            session_id=session_id, max_event_history=max_event_history, slots=slots
-        )
-        self.session_manager: "FileSessionManager" = session_manager
-
-    async def update_with_event(
-        self, event: Event, immediate_persist: bool = True
-    ) -> None:
-        """
-        Add a new event to the session's event history and update the session state
-
-        Args:
-            event: The event to add
-            immediate_persist: Whether to save to file immediately
-        """
-        if getattr(self, "session_manager") is None:
-            raise TomoFatalException(
-                "session_manager isn't defined in this instance, event cannot be applied."
-            )
-
-        event.apply_to(self)
-        self.events.append(event)
-        logger.debug(
-            f"Event {event.__class__.__name__} has been applied to session {self.session_id}"
-        )
-
-        if immediate_persist:
-            persisted_session = await self.session_manager.save(self)
-            return persisted_session
-        return self
-
-    async def update_with_events(
-        self,
-        new_events: List[Event],
-        override_timestamp: bool = True,
-    ) -> Session:
-        """
-        Update session with multiple events
-
-        Args:
-            new_events: List of events to apply
-            override_timestamp: Whether to update event timestamps
-        """
-        if getattr(self, "session_manager") is None:
-            raise TomoFatalException(
-                "session_manager isn't defined in this instance, event cannot be applied."
-            )
-
-        for e in new_events:
-            if override_timestamp:
-                e.timestamp = time.time()
-            await self.update_with_event(e, immediate_persist=False)
-
-        # Save all changes at once
-        persisted_session = await self.session_manager.save(self)
-        return persisted_session
-
-    def last_user_uttered_event(self) -> Optional[Event]:
-        """Get the most recent UserUttered event"""
-        for event in reversed(self.events):
-            if isinstance(event, UserUttered):
-                return event
-        return None
-
-    def has_bot_replied(self) -> bool:
-        """Check if the bot has replied since the last user message"""
-        for event in reversed(self.events):
-            if isinstance(event, BotUttered):
-                return True
-            if isinstance(event, UserUttered):
-                return False
-        return False
-
-    def get_events_after(self, timestamp: float) -> List[Event]:
-        """
-        Get all events after a specific timestamp
-
-        Args:
-            timestamp: The timestamp to filter events
-
-        Returns:
-            List of events after the timestamp
-        """
-        return [event for event in self.events if event.timestamp > timestamp]
-
-    def get_conversation_messages(self) -> List[Dict]:
-        """
-        Get conversation messages in a format suitable for chat interfaces
-
-        Returns:
-            List of message dictionaries
-        """
-        messages = []
-        for event in self.events:
-            if isinstance(event, (UserUttered, BotUttered)):
-                message = {
-                    "text": event.text,
-                    "timestamp": event.timestamp,
-                    "type": "user" if isinstance(event, UserUttered) else "bot",
-                }
-                if hasattr(event, "metadata") and event.metadata:
-                    message["metadata"] = event.metadata
-                messages.append(message)
-        return message
 
 
 class FileSessionManager(SessionManager):
@@ -205,31 +80,33 @@ class FileSessionManager(SessionManager):
             logger.error(f"Error writing session file {file_path}: {e}")
             raise TomoException(f"Failed to save session: {e}") from e
 
-    async def get_or_create_session(
-        self, session_id: str, max_event_history: Optional[int] = None
-    ) -> Session:
+    async def create_session(self, session_id: Optional[str] = None) -> "Session":
         """
         Get an existing session or create a new one
 
         Args:
             session_id: The session identifier
-            max_event_history: Maximum number of events to store
-
         Returns:
             The session instance
         """
-        session = await self.get_session(session_id)
-        if session is None:
-            logger.info(f"creating new session {session_id}")
-            # Initialize new session with assistant slots
-            slots = {slot.name: deepcopy(slot) for slot in self.assistant.slots}
-            session = FileSession(
-                session_manager=self,
-                session_id=session_id,
-                max_event_history=max_event_history,
-                slots=slots,
+        if session_id is None:
+            session_id = str(int(time.time()))
+
+        session_ids = await self.list_sessions()
+        if session_id in session_ids:
+            raise RuntimeError(
+                f"Cannot create session, session id {session_id} exist already !"
             )
-            await self.save(session)
+
+        logger.info(f"creating new session {session_id}")
+        # Initialize new session with assistant slots
+        slots = {slot.name: deepcopy(slot) for slot in self.assistant.slots}
+        session = Session(
+            session_id=session_id,
+            slots=slots,
+            status=SessionStatus.ACTIVE,
+        )
+        await self.save(session)
         return session
 
     async def get_session(self, session_id: str) -> Optional[Session]:
@@ -361,27 +238,36 @@ class FileSessionManager(SessionManager):
     def to_dict(self, session: Session):
         return {
             "session_id": session.session_id,
-            "max_event_history": session.max_event_history,
             "events": [JsonFormat.to_json(event) for event in session.events],
             "slots": {
                 key: JsonFormat.to_json(slot) for key, slot in session.slots.items()
             },
-            "active": session.active,
+            "status": session.status,
+            "metadata": session.metadata,
+            "created_at": session.created_at.isoformat(),
         }
 
     def from_dict(self, data: dict):
         session_id = data["session_id"]
-        max_event_history = data.get("max_event_history")
         events = [JsonFormat.from_json(event_data) for event_data in data["events"]]
         slots = {
             key: JsonFormat.from_json(slot_data)
             for key, slot_data in data["slots"].items()
         }
-        active = data.get("active")
-        session = FileSession(
-            self, session_id, max_event_history=max_event_history, slots=slots
+        status = data.get("status")
+        metadata = data.get("metadata", {})
+        created_at_str = data.get("created_at")
+        if created_at_str is None:
+            created_at = datetime.now(timezone.utc)
+        else:
+            created_at = datetime.fromisoformat(created_at_str)
+        session = Session(
+            session_id=session_id,
+            slots=slots,
+            created_at=created_at,
+            status=status,
+            events=events,
+            metadata=metadata,
         )
-        session.events = events
-        session.active = active
 
         return session

@@ -4,7 +4,7 @@ import logging
 from typing import Optional
 
 from tomo.core.actions import ActionBotUtterQuickReply
-from tomo.shared.session import Session
+from tomo.core.session import Session
 
 from .models import PolicyPrediction
 
@@ -19,7 +19,7 @@ class Policy(abc.ABC):
     def create(cls, policy_name, **kwargs):
         """Factory method to create an instance of a subclass by name."""
         if policy_name not in cls.subclasses:
-            raise ValueError(f"Unknown action: {policy_name}")
+            raise ValueError(f"Unknown policy: {policy_name}")
         return cls.subclasses[policy_name](**kwargs)
 
     def __init_subclass__(cls, **kwargs):

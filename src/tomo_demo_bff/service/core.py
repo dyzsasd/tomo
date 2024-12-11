@@ -1,13 +1,14 @@
+from datetime import datetime
 from typing import Dict, Optional, List, Any
 import logging
 
 from tomo.core.output_channels import CollectingOutputChannel
 from tomo.core.policies import LocalPolicyManager
 from tomo.core.processor import MessageProcessor
-from tomo.core.sessions import FileSessionManager
+from tomo.core.session_managers import FileSessionManager
 from tomo.core.user_message import TextUserMessage
 from tomo.shared.action_executor import ActionExector
-from tomo.shared.session_manager import SessionManager
+from tomo.core.session_managers.base import SessionManager
 from tomo.config import AssistantConfigLoader
 from tomo.assistant import Assistant
 
@@ -86,7 +87,7 @@ class TomoService:
         return [msg.as_dict() for msg in output_channel.messages]
 
     async def get_session_events(
-        self, session_id: str, after_timestamp: Optional[float] = None
+        self, session_id: str, after_timestamp: Optional[datetime] = None
     ) -> List[Dict[str, Any]]:
         """
         Get events for a session, optionally filtered by timestamp
@@ -111,7 +112,7 @@ class TomoService:
                     name=event.name,
                     detail=event_detail(event),
                     data=event_data(event),
-                    metadata=event.metadata,
+                    metadata=None,
                 )
                 events.append(event)
         return events
