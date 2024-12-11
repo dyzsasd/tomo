@@ -6,7 +6,7 @@ import textwrap
 from typing import Optional, Dict, Any, List
 
 from tomo.shared.action import Action
-from tomo.shared.session import Session
+from tomo.core.session import Session
 from tomo.shared.exceptions import TomoFatalException
 from tomo.utils.instruction_builder import (
     conversation_history_instruction,
@@ -61,7 +61,9 @@ class StepBasedLLMPolicy(BaseLLMPolicy):
 
         system_prompt = textwrap.dedent(
             """
-            You are an intelligent agent within multi-agent based customer service system, your responsability is guiding the system to determine and execute actions in order to finish the flight ticket exchange process.
+            You are an intelligent agent within multi-agent based customer service system, your responsability is guiding the system to determine and execute actions.
+
+            The target is: {target}
 
             The assistant is responsible for determining the appropriate actions from the available actions list, based on the current session state and conversation history.
 

@@ -1,3 +1,4 @@
+from datetime import datetime
 import logging
 from typing import Optional
 
@@ -7,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 async def get_session_events(
-    session_id: str, after: Optional[float], tomo_service: TomoService
+    session_id: str, after: Optional[datetime], tomo_service: TomoService
 ):
     """Get events for a session with optional timestamp filter"""
     try:

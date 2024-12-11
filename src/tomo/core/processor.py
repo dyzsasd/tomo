@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import os
-import time
 import typing
 
 from tomo.core.actions import (
@@ -11,7 +10,8 @@ from tomo.core.actions import (
     ActionListen,
     ActionSessionStart,
 )
-from tomo.core.events import ActionFailed, ActionExecuted, Event, Session, UserUttered
+from tomo.core.events import ActionFailed, ActionExecuted, Event, UserUttered
+from tomo.core.session import Session
 from tomo.core.policies import PolicyManager
 from tomo.core.policies import PolicyPrediction
 from tomo.core.user_message import UserMessage
@@ -19,7 +19,7 @@ from tomo.nlu.parser import NLUParser
 from tomo.shared.action_executor import ActionExector
 from tomo.shared.exceptions import TomoFatalException
 from tomo.shared.output_channel import OutputChannel
-from tomo.shared.session_manager import SessionManager
+from tomo.core.session_managers.base import SessionManager
 
 logger = logging.getLogger(__name__)
 MAX_NUMBER_OF_PREDICTIONS = int(os.environ.get("MAX_NUMBER_OF_PREDICTIONS", "100"))
@@ -43,8 +43,6 @@ class MessageProcessor:
                 ActionExecuted(
                     action_name=action.name,
                     policy=policy_name,
-                    timestamp=time.time(),
-                    metadata=None,
                 )
             )
         except Exception:
@@ -58,8 +56,6 @@ class MessageProcessor:
                 ActionFailed(
                     action_name=action.name,
                     policy=policy_name,
-                    timestamp=time.time(),
-                    metadata=None,
                 )
             ]
 
@@ -125,7 +121,7 @@ class MessageProcessor:
         events = await self._run_action(
             action_extract_slots, session, message.output_channel, None
         )
-        await session.update_with_events(events)
+        await self.session_manager.update_with_events(session.session_id, events)
 
         return session
 
@@ -146,9 +142,9 @@ class MessageProcessor:
         Returns:
               session for `session_id`.
         """
-        session: Session = await self.session_manager.get_or_create_session(
-            session_id, max_event_history=None
-        )
+        session = await self.session_manager.get_session(session_id)
+        if session is None:
+            session = await self.session_manager.create_session(session_id)
 
         # if the session is new created, which means event list is empty, then session start
         # action should be executed
@@ -166,31 +162,32 @@ class MessageProcessor:
                 policy_name=None,
             )
 
-            await session.update_with_events(events)
+            await self.session_manager.update_with_events(session.session_id, events)
 
         return session
 
     async def _handle_message_with_session(
-        self, message: UserMessage, session: Session
+        self,
+        message: UserMessage,
+        session: Session,
     ) -> None:
         # ATTENTION: parsed_data is here
-        if message.parse_data:
+        if message.parse_data is not None and len(message.parse_data) > 0:
             parse_data = message.parse_data
         else:
             parse_data = await self.nlu_parser.parse(message, session)
 
         # don't ever directly mutate the session
         # - instead pass its events to log
-        await session.update_with_event(
-            UserUttered(
+        await self.session_manager.update_with_event(
+            session_id=session.session_id,
+            event=UserUttered(
                 message_id=message.message_id,
                 text=message.text,
                 input_channel=message.input_channel,
                 intent=parse_data["intent"],
                 entities=parse_data["entities"],
-                timestamp=time.time(),
-                metadata=None,
-            )
+            ),
         )
 
         logger.debug(
@@ -220,7 +217,9 @@ class MessageProcessor:
                 events = await self._handle_prediction_with_session(
                     prediction, output_channel, session
                 )
-                await session.update_with_events(events)
+                session = await self.session_manager.update_with_events(
+                    session.session_id, events
+                )
                 return events
 
         async def _should_continue_loop(prediction: PolicyPrediction) -> bool:

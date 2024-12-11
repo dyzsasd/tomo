@@ -12,7 +12,7 @@ from tomo.core.base_llm_component import BaseLLMComponent
 from tomo.core.user_message import UserMessage
 from tomo.nlu.models import NLUExtraction, Entity, IntentExtraction
 from tomo.shared.intent import Intent
-from tomo.shared.session import Session
+from tomo.core.session import Session
 from tomo.utils.instruction_builder import (
     slot_instruction,
     conversation_history_instruction,

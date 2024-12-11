@@ -2,9 +2,9 @@ import abc
 import logging
 import typing
 
-from tomo.shared.event import Event
+from tomo.core.events.base import Event
 from tomo.shared.output_channel import OutputChannel
-from tomo.shared.session import Session
+from tomo.core.session import Session
 from tomo.utils.json import JSONSerializableBase
 
 logger = logging.getLogger(__name__)
