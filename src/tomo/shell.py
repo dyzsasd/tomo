@@ -91,7 +91,7 @@ async def main(config_path):
     output_channel = CollectingOutputChannel()
 
     # Start a new session
-    await message_processor.start_new_session(session_id, output_channel)
+    await message_processor.start_new_session(session_id)
 
     print("Welcome to the bot shell. Type 'quit' or 'exit' to end the conversation.")
 

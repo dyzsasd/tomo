@@ -1,11 +1,8 @@
 from dataclasses import dataclass
 from typing import Any, Optional
 
-from tomo.utils.json import json_serializable
-
 
 @dataclass
-@json_serializable
 class Slot:
     """
     Represents a key-value pair to store context or information extracted from the user

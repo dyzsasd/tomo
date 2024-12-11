@@ -2,11 +2,8 @@ import dataclasses
 import typing
 from dataclasses import dataclass
 
-from tomo.utils.json import json_serializable
-
 
 @dataclass
-@json_serializable
 class BotMessage:
     recipient_id: typing.Optional[str]
     text: typing.Optional[str] = None

@@ -1,3 +1,4 @@
+from dataclasses import field
 import logging
 import typing
 
@@ -36,9 +37,9 @@ class UserUttered(Event):
 
     name: typing.ClassVar[str] = "user talked"
 
-    message_id: str
-    text: str
-    input_channel: str  # TODO: create enum for input channel
+    message_id: str = field(default="")
+    text: str = field(default="")
+    input_channel: str = field(default="")
     intent: typing.Optional[IntentExtraction] = None
     entities: typing.Optional[typing.List[Entity]] = None
 
@@ -102,7 +103,7 @@ class SlotSet(Event):
         value: The value to assign to the slot (can be `None` to clear the slot).
     """
 
-    key: str
+    key: str = ""
     value: typing.Optional[typing.Any] = None
 
     def apply_to(self, session: "Session") -> None:
@@ -130,7 +131,7 @@ class SlotUnset(Event):
         key: The name of the slot being set.
     """
 
-    key: str
+    key: str = ""
 
     def apply_to(self, session: "Session") -> None:
         """
@@ -157,7 +158,7 @@ class ActionExecuted(Event):
         policy: The policy that predicted this action (optional).
     """
 
-    action_name: str
+    action_name: str = ""
     policy: typing.Optional[str] = None
 
     def apply_to(self, session: "Session") -> None:
@@ -175,7 +176,7 @@ class ActionExecuted(Event):
 
 
 class ActionFailed(Event):
-    action_name: str
+    action_name: str = ""
     policy: typing.Optional[str] = None
 
     def apply_to(self, session: "Session") -> None:

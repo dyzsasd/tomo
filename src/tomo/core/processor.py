@@ -8,7 +8,6 @@ from tomo.core.actions import (
     ActionDisableSession,
     ActionExtractSlots,
     ActionListen,
-    ActionSessionStart,
 )
 from tomo.core.events import ActionFailed, ActionExecuted, Event, UserUttered
 from tomo.core.session import Session
@@ -82,10 +81,8 @@ class MessageProcessor:
         # TODO: use shared lock system
         self._session_locks = {}
 
-    async def start_new_session(
-        self, session_id: str, output_channel: typing.Optional[OutputChannel]
-    ) -> Session:
-        session = await self.get_session(session_id, output_channel=output_channel)
+    async def start_new_session(self, session_id: str) -> Session:
+        session = await self.get_session(session_id)
         return session
 
     async def handle_message(self, message: UserMessage) -> None:
@@ -110,9 +107,7 @@ class MessageProcessor:
         4. Save the update session with session manager.
 
         """
-        session: Session = await self.get_session(
-            message.session_id, message.output_channel
-        )
+        session: Session = await self.get_session(message.session_id)
 
         await self._handle_message_with_session(message, session)
 
@@ -128,7 +123,6 @@ class MessageProcessor:
     async def get_session(
         self,
         session_id: str,
-        output_channel: typing.Optional[OutputChannel] = None,
     ) -> Session:
         """Fetches session for `session_id` and updates it.
 
@@ -152,17 +146,6 @@ class MessageProcessor:
             logger.debug(
                 f"Starting a new session for session ID '{session.session_id}'."
             )
-
-            action_session_start = ActionSessionStart("Hi, I'm your assistant Tomo")
-
-            events = await self._run_action(
-                action=action_session_start,
-                session=session,
-                output_channel=output_channel,
-                policy_name=None,
-            )
-
-            await self.session_manager.update_with_events(session.session_id, events)
 
         return session
 

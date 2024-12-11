@@ -36,7 +36,7 @@ class WebSocketOutputChannel(OutputChannel):
             {
                 "type": "bot",
                 "text": text,
-                "timestamp": datetime.now(timezone.utc),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "metadata": kwargs,
             }
         )

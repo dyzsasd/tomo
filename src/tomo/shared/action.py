@@ -5,12 +5,12 @@ import typing
 from tomo.core.events.base import Event
 from tomo.shared.output_channel import OutputChannel
 from tomo.core.session import Session
-from tomo.utils.json import JSONSerializableBase
+from tomo.utils.json import DataclassABC
 
 logger = logging.getLogger(__name__)
 
 
-class Action(abc.ABC, JSONSerializableBase):
+class Action(DataclassABC):
     subclasses = {}
 
     @classmethod

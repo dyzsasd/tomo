@@ -12,10 +12,12 @@ from aiofiles import open as aio_open
 from aiofiles.os import remove as aio_remove
 
 from tomo.assistant import Assistant
+from tomo.core.events import Event
 from tomo.core.models import SessionStatus
 from tomo.core.session import Session
 from tomo.shared.exceptions import TomoException
-from tomo.utils.json import JsonFormat
+from tomo.shared.slots import Slot
+from tomo.utils.json import JsonEngine
 
 from .base import SessionManager
 
@@ -238,9 +240,9 @@ class FileSessionManager(SessionManager):
     def to_dict(self, session: Session):
         return {
             "session_id": session.session_id,
-            "events": [JsonFormat.to_json(event) for event in session.events],
+            "events": [JsonEngine.to_json(event) for event in session.events],
             "slots": {
-                key: JsonFormat.to_json(slot) for key, slot in session.slots.items()
+                key: JsonEngine.to_json(slot) for key, slot in session.slots.items()
             },
             "status": session.status,
             "metadata": session.metadata,
@@ -249,9 +251,11 @@ class FileSessionManager(SessionManager):
 
     def from_dict(self, data: dict):
         session_id = data["session_id"]
-        events = [JsonFormat.from_json(event_data) for event_data in data["events"]]
+        events = [
+            JsonEngine.from_json(event_data, Event) for event_data in data["events"]
+        ]
         slots = {
-            key: JsonFormat.from_json(slot_data)
+            key: JsonEngine.from_json(slot_data, Slot)
             for key, slot_data in data["slots"].items()
         }
         status = data.get("status")
