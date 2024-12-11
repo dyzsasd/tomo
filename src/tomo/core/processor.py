@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import os
-import time
 import typing
 
 from tomo.core.actions import (
@@ -11,7 +10,8 @@ from tomo.core.actions import (
     ActionListen,
     ActionSessionStart,
 )
-from tomo.core.events import ActionFailed, ActionExecuted, Event, Session, UserUttered
+from tomo.core.events import ActionFailed, ActionExecuted, Event, UserUttered
+from tomo.core.session import Session
 from tomo.core.policies import PolicyManager
 from tomo.core.policies import PolicyPrediction
 from tomo.core.user_message import UserMessage
@@ -43,8 +43,6 @@ class MessageProcessor:
                 ActionExecuted(
                     action_name=action.name,
                     policy=policy_name,
-                    timestamp=time.time(),
-                    metadata=None,
                 )
             )
         except Exception:
@@ -58,8 +56,6 @@ class MessageProcessor:
                 ActionFailed(
                     action_name=action.name,
                     policy=policy_name,
-                    timestamp=time.time(),
-                    metadata=None,
                 )
             ]
 
@@ -146,7 +142,9 @@ class MessageProcessor:
         Returns:
               session for `session_id`.
         """
-        session: Session = await self.session_manager.get_or_create_session(session_id)
+        session = await self.session_manager.get_session(session_id)
+        if session is None:
+            session = await self.session_manager.create_session(session_id)
 
         # if the session is new created, which means event list is empty, then session start
         # action should be executed
@@ -189,8 +187,6 @@ class MessageProcessor:
                 input_channel=message.input_channel,
                 intent=parse_data["intent"],
                 entities=parse_data["entities"],
-                timestamp=time.time(),
-                metadata=None,
             ),
         )
 

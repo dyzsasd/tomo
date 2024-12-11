@@ -2,7 +2,6 @@
 # Line too long
 
 import logging
-import time
 import typing
 
 from tomo.core.events import SlotSet
@@ -32,26 +31,18 @@ class ActionParsePNR(Action):
             SlotSet(
                 key="origin",
                 value="CDG",
-                timestamp=time.time(),
-                metadata=None,
             ),
             SlotSet(
                 key="destination",
                 value="JFK",
-                timestamp=time.time(),
-                metadata=None,
             ),
             SlotSet(
                 key="marketing_carrier",
                 value="AY",
-                timestamp=time.time(),
-                metadata=None,
             ),
             SlotSet(
                 key="fare_basis_code",
                 value="HLN0C5M8",
-                timestamp=time.time(),
-                metadata=None,
             ),
         ]
 
@@ -76,8 +67,6 @@ class ActionRetrieveFareRules(Action):
             SlotSet(
                 key="fare_rules",
                 value=dummy_rules,
-                timestamp=time.time(),
-                metadata=None,
             ),
         ]
 
@@ -102,8 +91,6 @@ class ActionCalculateRefundFee(Action):
             SlotSet(
                 key="refund_fee_breakdown",
                 value="refund fee is 150$",
-                timestamp=time.time(),
-                metadata=None,
             ),
         ]
 

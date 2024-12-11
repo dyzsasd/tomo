@@ -1,5 +1,5 @@
 import logging
-import time
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import WebSocket
@@ -33,7 +33,12 @@ class WebSocketOutputChannel(OutputChannel):
         self, text: str, recipient_id: Optional[str] = None, **kwargs: Any
     ) -> None:
         await self._send_message(
-            {"type": "bot", "text": text, "timestamp": time.time(), "metadata": kwargs}
+            {
+                "type": "bot",
+                "text": text,
+                "timestamp": datetime.now(timezone.utc),
+                "metadata": kwargs,
+            }
         )
 
     async def send_image_url(

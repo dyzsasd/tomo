@@ -1,5 +1,5 @@
 assistant:
-  name: Flight Fare Assistant
+  name: Flight Fare Agent Assistant
 
   intents:
     - name: fare_rule_check
@@ -14,6 +14,22 @@ assistant:
       extractable: false
     - name: pnr_confirmed
       description: Confirmation from the customer that the retrieved PNR is correct.
+      extractable: true
+
+    - name: origin
+      description: The origin airport IATA code of the flight, which should be composed by 3 letters
+      extractable: true
+    - name: destination
+      description: The destination airport IATA code of the flight, which should be composed by 3 letters
+      extractable: true
+    - name: marketing_carrier
+      description: The marketing airline IATA code of the flight, which should be two letters code
+      extractable: true
+    - name: fare_basis_code
+      description: >
+        a unique alphanumeric code used in the airline industry to identify the specific rules, restrictions, and pricing associated with a fare.
+        This code is assigned to each ticket and helps airlines, travel agents, and passengers understand the conditions of the ticket,
+        such as refundability, change fees, and eligibility for upgrades.
       extractable: true
 
     - name: fare_rules
@@ -32,50 +48,24 @@ assistant:
         The fee breakdown of refund calculated by agent according to fare_rules and refund_reason
       extractable: false
   policies:
-    - policy_type: StepBasedLLMPolicy
-      name: "fare_basis_check"
-      target: "Help user to understand the fare conditions and calculate the exchange fee and cancellation fee"
+    - policy_type: StandardLLMPolicy
+      name: retrieve_fare_basis
       intents:
         - fare_rule_check
-      steps:
-        - id: retrieve_pnr
-          description: Retrive customer's booking PNR from GDS API.
-          prompt: >
-            First of all, the slot pnr_number should be checked, if it isn't filled, the bot
-            need to send a message to user and ask for PNR number, or re-ask the right PNR
-            number if it has already been asked.
+      mission: "Retrieve fare rules from GDS API"
+      instructions: >
+        If the fare_rules slot isn't present, this policy should generate the actions to retrieve the fare rules information by triggering retrieve_fare_rule.
 
-            Once the PNR number is filled, then the retrieve_pnr action should be triggered to
-            get the PNR information from Sabre. The PNR information will be filled in slot
-            pnr_details.
+        retrieve_fare_rule action need fare_basis_code, marketing_carrier, origin and destination as the input. These value can be given directly by
+        customer, or it can be retrieved from the pnr_detail by parse_pnr action. You need to ask the customer if he can give the required
+        fare_basis_code, marketing_carrier, origin and destination to retrieve the fare rules or they can give the PNR number to retrieve the PNR information.
 
-            Once the pnr_details is filled, the bot need to ask the customer to confirm the
-            booking information by giving them the information about booked flight, passengers etc.
-            Once the customer confirme it is the booking that they want to change, go to the step
-            exchange_shopping
-
-        - id: retrieve_fare_rules
-          description: Find the new flight for customer according to user's requires
-          prompt: >
-            If the fare_rules slot isn't present, this policy should generate the actions to retrieve the fare rules information by triggering retrieve_fare_rule.
-
-            retrieve_fare_rule action need fare_basis_code, marketing_carrier, origin and destination as the input. These value can be given directly by
-            customer, or it can be retrieved from the pnr_detail by parse_pnr action. You need to ask the customer if he can give the required
-            fare_basis_code, marketing_carrier, origin and destination to retrieve the fare rules or they can give the PNR number to retrieve the PNR information.
-
-            pnr_detail information can be retrieved by retrieve_pnr action, it need pnr_number as input which should be given by customer. Once pnr_detail
-            is retrieved, we need the customer to confirm it is the right flight booking that they want to check the condition.
-
-        - id: fare_basis_check
-          description: Answer user's all question about the fare basis.
-          prompt: >
-
-
+        pnr_detail information can be retrieved by retrieve_pnr action, it need pnr_number as input which should be given by customer. Once pnr_detail
+        is retrieved, we need the customer to confirm it is the right flight booking that they want to check the condition.
       actions:
-        - update_step
         - retrieve_pnr
-        - exchange_shopping
-        - cancel_existing_itinerary
+        - parse_pnr
+        - retrieve_fare_rule
         - bot_utter
         - listen
       llm_config:
@@ -83,6 +73,27 @@ assistant:
         llm_params:
           model_name: gpt-4o
           temperature: 1.0
+      local_test: true
+
+    - policy_type: StandardLLMPolicy
+      name: calculate_refund_fee
+      intents:
+        - fare_rule_check
+      mission: "Retrieve fare basis from GDS API"
+      instructions: >
+        If the fare_rules isn't filled, then no action should be triggered.
+        if the fare_rules slot is filled, this policy should trigger the calculation of the refund fee.
+        The assistant should ask the reason of the refund, then the refund_fee can be calculated by calculate_refund_fee action based on refund reason and fare rules.
+      actions:
+        - calculate_refund_fee
+        - bot_utter
+        - listen
+      llm_config:
+        llm_type: openai
+        llm_params:
+          model_name: gpt-4o
+          temperature: 1.0
+      local_test: true
   nlu:
     nlu_type: LLMNLUParser
     config:

@@ -1,4 +1,5 @@
 import abc
+from datetime import datetime, timezone
 import json
 import typing
 
@@ -17,8 +18,8 @@ class Event(abc.ABC, JSONSerializableBase):
     carries metadata and can be applied to the session to update its state.
     """
 
-    timestamp: float
-    metadata: typing.Optional[typing.Dict[str, typing.Any]]
+    def __post_init__(self):
+        self.timestamp: datetime = lambda: datetime.now(timezone.utc)
 
     @abc.abstractmethod
     def apply_to(self, session: "Session") -> None:

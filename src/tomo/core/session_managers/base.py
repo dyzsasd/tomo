@@ -1,7 +1,7 @@
 import abc
+from datetime import datetime, timezone
 import logging
 from enum import Enum
-import time
 from typing import Optional, TYPE_CHECKING, List
 
 from tomo.shared.exceptions import TomoFatalException
@@ -50,7 +50,7 @@ class SessionManager(abc.ABC):
 
         for e in new_events:
             if override_timestamp:
-                e.timestamp = time.time()
+                e.timestamp = datetime.now(timezone.utc)
             e.apply_to(session)
             session.events.append(e)
 
@@ -58,7 +58,7 @@ class SessionManager(abc.ABC):
         return persisted_session
 
     @abc.abstractmethod
-    async def get_or_create_session(self, session_id: str) -> "Session":
+    async def create_session(self, session_id: Optional[str] = None) -> "Session":
         pass
 
     @abc.abstractmethod

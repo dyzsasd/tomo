@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 import logging
 from copy import deepcopy
 from typing import Any, Dict, List, Optional
@@ -20,9 +21,10 @@ class Session:
 
     session_id: str
     slots: Dict[str, Slot]
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    status: SessionStatus = field(default=SessionStatus.ACTIVE)
     events: List["Event"] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)
-    status: SessionStatus = field(default=SessionStatus.ACTIVE)
 
     @property
     def active(self):
@@ -77,7 +79,7 @@ class Session:
                 return False
         return False
 
-    def get_events_after(self, timestamp: float) -> List["Event"]:
+    def get_events_after(self, timestamp: datetime) -> List["Event"]:
         """
         Get all events after a specific timestamp
 
@@ -104,7 +106,5 @@ class Session:
                     "timestamp": event.timestamp,
                     "type": "user" if isinstance(event, UserUttered) else "bot",
                 }
-                if hasattr(event, "metadata") and event.metadata:
-                    message["metadata"] = event.metadata
                 messages.append(message)
-        return message
+        return messages

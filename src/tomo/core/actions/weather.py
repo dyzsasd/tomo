@@ -1,5 +1,4 @@
 import logging
-import time
 import typing
 
 from tomo.core.events import SlotSet
@@ -35,7 +34,5 @@ class FindWeather(Action):
             SlotSet(
                 key="weather",
                 value="There will be heavy snow, and the temperature will be between -5 degree.",
-                timestamp=time.time(),
-                metadata=None,
             )
         ]

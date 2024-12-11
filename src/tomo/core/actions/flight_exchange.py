@@ -2,7 +2,6 @@
 # Line too long
 
 import logging
-import time
 import typing
 
 from tomo.core.events import (
@@ -42,8 +41,6 @@ class ValidateServiceAvailability(Action):
                 BotUttered(
                     text="Could you please provide your location?",
                     data=None,
-                    timestamp=time.time(),
-                    metadata=None,
                 )
             ]
 
@@ -62,8 +59,6 @@ class ValidateServiceAvailability(Action):
             BotUttered(
                 text="Sorry, our service is not available in your location.",
                 data=None,
-                timestamp=time.time(),
-                metadata=None,
             ),
             SessionDisabled(),
         ]
@@ -92,8 +87,6 @@ class ActionExchangeShopping(Action):
                 BotUttered(
                     text="Could you please provide your location?",
                     data=None,
-                    timestamp=time.time(),
-                    metadata=None,
                 )
             ]
 
@@ -112,8 +105,6 @@ class ActionExchangeShopping(Action):
             BotUttered(
                 text="Sorry, our service is not available in your location.",
                 data=None,
-                timestamp=time.time(),
-                metadata=None,
             ),
             SessionDisabled(),
         ]
@@ -149,8 +140,6 @@ class RetrievePNR(Action):
             SlotSet(
                 key="pnr_details",
                 value=pnr_details,
-                timestamp=time.time(),
-                metadata=None,
             )
         ]
 
@@ -178,8 +167,6 @@ class CancelExistingItinerary(Action):
                 BotUttered(
                     text="Cannot cancel itinerary without PNR details.",
                     data=None,
-                    timestamp=time.time(),
-                    metadata=None,
                 )
             ]
 
@@ -199,8 +186,6 @@ class CancelExistingItinerary(Action):
             BotUttered(
                 text="Failed to cancel your existing itinerary.",
                 data=None,
-                timestamp=time.time(),
-                metadata=None,
             )
         ]
 
@@ -228,8 +213,6 @@ class BookNewItinerary(Action):
                 BotUttered(
                     text="Please provide the details of your new itinerary.",
                     data=None,
-                    timestamp=time.time(),
-                    metadata=None,
                 )
             ]
 
@@ -247,8 +230,6 @@ class BookNewItinerary(Action):
             BotUttered(
                 text="Unable to book your new itinerary.",
                 data=None,
-                timestamp=time.time(),
-                metadata=None,
             )
         ]
 
@@ -277,8 +258,6 @@ class PriceTheExchange(Action):
                 BotUttered(
                     text="I need your original ticket number to price the exchange.",
                     data=None,
-                    timestamp=time.time(),
-                    metadata=None,
                 )
             ]
 
@@ -296,14 +275,10 @@ class PriceTheExchange(Action):
                 SlotSet(
                     key="pricing_information",
                     value=pricing_information,
-                    timestamp=time.time(),
-                    metadata=None,
                 ),
                 SlotSet(
                     key="pqr_number",
                     value=pricing_information["pqr_number"],
-                    timestamp=time.time(),
-                    metadata=None,
                 ),
             ]
 
@@ -315,8 +290,6 @@ class PriceTheExchange(Action):
             BotUttered(
                 text="Unable to obtain pricing information at this time.",
                 data=None,
-                timestamp=time.time(),
-                metadata=None,
             )
         ]
 
@@ -344,8 +317,6 @@ class EvaluatePricingInformation(Action):
                 BotUttered(
                     text="There is no pricing information to evaluate.",
                     data=None,
-                    timestamp=time.time(),
-                    metadata=None,
                 )
             ]
 
@@ -360,15 +331,11 @@ class EvaluatePricingInformation(Action):
             BotUttered(
                 text=message,
                 data=None,
-                timestamp=time.time(),
-                metadata=None,
             ),
             # Wait for user confirmation
             SlotSet(
                 key="awaiting_user_confirmation",
                 value=True,
-                timestamp=time.time(),
-                metadata=None,
             ),
         ]
 
@@ -396,8 +363,6 @@ class ConfirmExchange(Action):
                 BotUttered(
                     text="Cannot confirm exchange without a PQR number.",
                     data=None,
-                    timestamp=time.time(),
-                    metadata=None,
                 )
             ]
 
@@ -415,8 +380,6 @@ class ConfirmExchange(Action):
             BotUttered(
                 text="Failed to confirm your exchange.",
                 data=None,
-                timestamp=time.time(),
-                metadata=None,
             )
         ]
 
@@ -444,8 +407,6 @@ class EndAndRetrieveUpdatedPNR(Action):
                 BotUttered(
                     text="Cannot retrieve updated PNR without PNR number.",
                     data=None,
-                    timestamp=time.time(),
-                    metadata=None,
                 )
             ]
 
@@ -459,8 +420,6 @@ class EndAndRetrieveUpdatedPNR(Action):
                 SlotSet(
                     key="pnr_details",
                     value=updated_pnr_details,
-                    timestamp=time.time(),
-                    metadata=None,
                 )
             ]
 
@@ -472,8 +431,6 @@ class EndAndRetrieveUpdatedPNR(Action):
             BotUttered(
                 text="Failed to retrieve your updated booking details.",
                 data=None,
-                timestamp=time.time(),
-                metadata=None,
             )
         ]
 
@@ -501,8 +458,6 @@ class TicketTheExchange(Action):
                 BotUttered(
                     text="Cannot issue ticket without a reissue number.",
                     data=None,
-                    timestamp=time.time(),
-                    metadata=None,
                 )
             ]
 
@@ -520,8 +475,6 @@ class TicketTheExchange(Action):
             BotUttered(
                 text="Failed to issue your ticket.",
                 data=None,
-                timestamp=time.time(),
-                metadata=None,
             )
         ]
 
@@ -541,8 +494,6 @@ class CompletionConfirmation(Action):
             BotUttered(
                 text=message,
                 data=None,
-                timestamp=time.time(),
-                metadata=None,
             )
         ]
 
@@ -565,7 +516,5 @@ class AskHumanConfirmation(Action):
             BotUttered(
                 text="Your exchange request is pending approval from a human agent.",
                 data=None,
-                timestamp=time.time(),
-                metadata=None,
             )
         ]

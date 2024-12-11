@@ -1,4 +1,5 @@
 from copy import deepcopy
+from datetime import datetime, timezone
 import glob
 import json
 import logging
@@ -79,7 +80,7 @@ class FileSessionManager(SessionManager):
             logger.error(f"Error writing session file {file_path}: {e}")
             raise TomoException(f"Failed to save session: {e}") from e
 
-    async def get_or_create_session(self, session_id: str) -> Session:
+    async def create_session(self, session_id: Optional[str] = None) -> "Session":
         """
         Get an existing session or create a new one
 
@@ -88,17 +89,24 @@ class FileSessionManager(SessionManager):
         Returns:
             The session instance
         """
-        session = await self.get_session(session_id)
-        if session is None:
-            logger.info(f"creating new session {session_id}")
-            # Initialize new session with assistant slots
-            slots = {slot.name: deepcopy(slot) for slot in self.assistant.slots}
-            session = Session(
-                session_id=session_id,
-                slots=slots,
-                status=SessionStatus.ACTIVE,
+        if session_id is None:
+            session_id = str(int(time.time()))
+
+        session_ids = await self.list_sessions()
+        if session_id in session_ids:
+            raise RuntimeError(
+                f"Cannot create session, session id {session_id} exist already !"
             )
-            await self.save(session)
+
+        logger.info(f"creating new session {session_id}")
+        # Initialize new session with assistant slots
+        slots = {slot.name: deepcopy(slot) for slot in self.assistant.slots}
+        session = Session(
+            session_id=session_id,
+            slots=slots,
+            status=SessionStatus.ACTIVE,
+        )
+        await self.save(session)
         return session
 
     async def get_session(self, session_id: str) -> Optional[Session]:
@@ -235,6 +243,8 @@ class FileSessionManager(SessionManager):
                 key: JsonFormat.to_json(slot) for key, slot in session.slots.items()
             },
             "status": session.status,
+            "metadata": session.metadata,
+            "created_at": session.created_at.isoformat(),
         }
 
     def from_dict(self, data: dict):
@@ -246,12 +256,18 @@ class FileSessionManager(SessionManager):
         }
         status = data.get("status")
         metadata = data.get("metadata", {})
+        created_at_str = data.get("created_at")
+        if created_at_str is None:
+            created_at = datetime.now(timezone.utc)
+        else:
+            created_at = datetime.fromisoformat(created_at_str)
         session = Session(
             session_id=session_id,
             slots=slots,
+            created_at=created_at,
+            status=status,
             events=events,
             metadata=metadata,
-            status=status,
         )
 
         return session

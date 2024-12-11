@@ -1,10 +1,10 @@
 import logging
-from datetime import datetime
 from typing import List, Optional
 
 from fastapi import HTTPException
 
 from tomo.core.models import SessionStatus
+from tomo.core.session import Session
 
 from ..core import TomoService
 from ..models import (
@@ -32,12 +32,8 @@ async def get_all_sessions(tomo_service: TomoService) -> dict:
             if session:
                 # Get first and last event timestamps
                 events = session.events
-                created_at = (
-                    datetime.fromtimestamp(events[0].timestamp) if events else None
-                )
-                last_active = (
-                    datetime.fromtimestamp(events[-1].timestamp) if events else None
-                )
+                created_at = session.created_at
+                last_active = events[-1].timestamp if events else session.created_at
 
                 # Count messages
                 message_count = len(session.get_conversation_messages())
@@ -72,19 +68,15 @@ async def get_pnr_sessions(tomo_service: TomoService) -> PNRSessionsResponse:
             session = await tomo_service.session_manager.get_session(session_id)
             if (
                 session
-                and session.metadata.get("session_type") == SessionType.PNR_CHECK
+                and session.metadata.get("session_type") == SessionType.PNR_ASSISTANT
             ):
                 pnr_number = session.slots.get("pnr_number")
                 status = session.slots.get("status", SessionStatus.ACTIVE)
 
                 # Get event timestamps
                 events = session.events
-                created_at = (
-                    datetime.fromtimestamp(events[0].timestamp) if events else None
-                )
-                last_active = (
-                    datetime.fromtimestamp(events[-1].timestamp) if events else None
-                )
+                created_at = events[0].timestamp if events else None
+                last_active = events[-1].timestamp if events else None
 
                 # Only include non-deleted sessions
                 if status != SessionStatus.DELETED:
@@ -94,7 +86,7 @@ async def get_pnr_sessions(tomo_service: TomoService) -> PNRSessionsResponse:
                         created_at=created_at,
                         last_active=last_active,
                         status=status.value,
-                        session_type=SessionType.PNR_CHECK,
+                        session_type=SessionType.PNR_ASSISTANT,
                         message_count=len(session.get_conversation_messages()),
                     )
                     pnr_sessions.append(pnr_session)
@@ -115,22 +107,25 @@ async def create_pnr_session(
         # Check if session already exists for this PNR
         existing_session = await find_pnr_session(request.pnr_number, tomo_service)
         if existing_session:
-            return CreatePNRSessionResponse(session_id=existing_session.session_id)
+            return CreatePNRSessionResponse(
+                session_id=existing_session.session_id, session=existing_session
+            )
 
         # Create new session
-        session_id = await tomo_service.session_manager.create_session()
-        session = await tomo_service.session_manager.get_session(session_id)
+        session = await tomo_service.session_manager.create_session()
 
         # Set session metadata
-        session.metadata["session_type"] = SessionType.PNR_CHECK
+        session.metadata["session_type"] = SessionType.PNR_ASSISTANT
 
         # Initialize session slots
-        await session.set_slot("pnr_number", request.pnr_number)
-        await session.set_slot("status", SessionStatus.ACTIVE)
+        session.metadata["pnr_number"] = request.pnr_number
+        session.status = SessionStatus.ACTIVE
 
         await tomo_service.session_manager.save(session)
 
-        return CreatePNRSessionResponse(session_id=session_id)
+        return CreatePNRSessionResponse(
+            session_id=session.session_id, session=_pnr_session_from_session(session)
+        )
     except Exception as e:
         logger.error(f"Error creating PNR session: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e)) from e
@@ -144,29 +139,27 @@ async def find_pnr_session(
 
     for session_id in session_ids:
         session = await tomo_service.session_manager.get_session(session_id)
-        if session and session.metadata.get("session_type") == SessionType.PNR_CHECK:
-            pnr = session.slots.get("pnr_number")
-            status = session.slots.get("status")
-
-            if (
-                pnr
-                and pnr.value == pnr_number
-                and status
-                and status.value == SessionStatus.ACTIVE
-            ):
-                events = session.events
-                return PNRSession(
-                    session_id=session_id,
-                    pnr_number=pnr_number,
-                    created_at=datetime.fromtimestamp(events[0].timestamp)
-                    if events
-                    else datetime.now(),
-                    last_active=datetime.fromtimestamp(events[-1].timestamp)
-                    if events
-                    else datetime.now(),
-                    status=SessionStatus.ACTIVE,
-                    session_type=SessionType.PNR_CHECK,
-                    message_count=len(session.get_conversation_messages()),
-                )
+        if (
+            session
+            and session.metadata.get("session_type") == SessionType.PNR_ASSISTANT
+        ):
+            session_pnr_number = session.metadata.get("pnr_number")
+            status = session.status
+            if session_pnr_number == pnr_number and status == SessionStatus.ACTIVE:
+                return _pnr_session_from_session(session)
 
     return None
+
+
+def _pnr_session_from_session(session: Session) -> PNRSession:
+    events = session.events
+    session_pnr_number = session.metadata.get("pnr_number")
+    return PNRSession(
+        session_id=session.session_id,
+        pnr_number=session_pnr_number,
+        created_at=session.created_at,
+        last_active=events[-1].timestamp if events else session.created_at,
+        status=SessionStatus.ACTIVE,
+        session_type=SessionType.PNR_ASSISTANT,
+        message_count=len(session.get_conversation_messages()),
+    )

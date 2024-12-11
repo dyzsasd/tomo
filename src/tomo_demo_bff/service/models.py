@@ -78,7 +78,7 @@ class Event(BaseModel):
     """
 
     type: str
-    timestamp: float
+    timestamp: datetime
     name: str
     detail: str
     data: Optional[Dict[str, Any]]
@@ -112,7 +112,7 @@ class SessionListResponse(BaseModel):
 class SessionType(str, Enum):
     """Enum for different types of sessions"""
 
-    PNR_CHECK = "pnr_check"
+    PNR_ASSISTANT = "PNR_ASSISTANT"
     GENERAL = "general"
 
 
@@ -124,7 +124,7 @@ class PNRSession(BaseModel):
     created_at: datetime
     last_active: datetime
     status: SessionStatus
-    session_type: SessionType = SessionType.PNR_CHECK
+    session_type: SessionType = SessionType.PNR_ASSISTANT
     message_count: int
 
 
@@ -145,6 +145,7 @@ class CreatePNRSessionResponse(BaseModel):
     """Response model for PNR session creation endpoint"""
 
     session_id: str
+    session: PNRSession
 
 
 class DeleteSessionResponse(BaseModel):

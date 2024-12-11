@@ -2,7 +2,6 @@
 # Line too long
 from dataclasses import field
 import logging
-import time
 import typing
 
 from tomo.core.events import BotUttered, UserUttered, SlotSet, SlotUnset
@@ -49,8 +48,6 @@ class ActionReinitializeSlot(Action):
         return [
             SlotUnset(
                 key=slot,
-                timestamp=time.time(),
-                metadata=None,
             )
             for slot in self.slots
         ]
@@ -74,8 +71,6 @@ class ActionBotUtter(Action):
             BotUttered(
                 text=self.message,
                 data=None,
-                timestamp=time.time(),
-                metadata=None,
             )
         ]
 
@@ -96,8 +91,6 @@ class ActionBotUtterQuickReply(ActionBotUtter):
                 BotUttered(
                     text=self.message,
                     data=None,
-                    timestamp=time.time(),
-                    metadata=None,
                 )
             ]
         return []
@@ -131,8 +124,6 @@ class ActionExtractSlots(Action):
                     SlotSet(
                         key=entity.name,
                         value=entity.value,
-                        timestamp=time.time(),
-                        metadata=None,
                     )
                 )
             else:
@@ -158,8 +149,6 @@ class ActionSessionStart(Action):
             BotUttered(
                 text=self.greeting_message,
                 data=None,
-                timestamp=time.time(),
-                metadata=None,
             )
         ]
 
@@ -190,7 +179,5 @@ class ActionUpdateStep(Action):
             SlotSet(
                 key="step",
                 value=self.step_name,
-                timestamp=time.time(),
-                metadata=None,
             )
         ]

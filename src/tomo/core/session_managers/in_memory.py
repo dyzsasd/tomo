@@ -1,5 +1,6 @@
 from copy import deepcopy
 import logging
+import time
 from typing import Dict, Optional
 
 from tomo.assistant import Assistant
@@ -24,7 +25,7 @@ class InMemorySessionManager(SessionManager):
     async def list_sessions(self) -> list[str]:
         return list(self.sessions.keys())
 
-    async def get_or_create_session(self, session_id: str) -> Session:
+    async def create_session(self, session_id: Optional[str] = None) -> "Session":
         """
         Retrieve an existing session or create a new one if it doesn't exist.
 
@@ -34,10 +35,18 @@ class InMemorySessionManager(SessionManager):
         Returns:
             The session object.
         """
-        if session_id not in self.sessions:
-            slots = {slot.name: deepcopy(slot) for slot in self.assistant.slots}
-            session = Session(session_id, slots=slots)
-            self.sessions[session_id] = session
+        if session_id is None:
+            session_id = str(int(time.time()))
+
+        if session_id in self.sessions:
+            raise RuntimeError(
+                f"Cannot create session, session id {session_id} exist already !"
+            )
+
+        slots = {slot.name: deepcopy(slot) for slot in self.assistant.slots}
+        session = Session(session_id, slots=slots)
+        self.sessions[session_id] = session
+
         return self.sessions[session_id]
 
     async def get_session(self, session_id: str) -> Optional[Session]:
