@@ -170,6 +170,7 @@ class MessageProcessor:
                 input_channel=message.input_channel,
                 intent=parse_data["intent"],
                 entities=parse_data["entities"],
+                timestamp=message.timestamp,
             ),
         )
 

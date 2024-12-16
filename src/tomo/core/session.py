@@ -1,10 +1,11 @@
-from dataclasses import dataclass, field
 from datetime import datetime, timezone
 import logging
 from copy import deepcopy
 from typing import Any, Dict, List, Optional
 
-from tomo.core.events import Event, UserUttered, BotUttered
+from pydantic import BaseModel, Field
+
+from tomo.core.events import EventUnion, UserUttered, BotUttered
 from tomo.core.models import SessionStatus
 from tomo.shared.slots import Slot
 
@@ -12,8 +13,7 @@ from tomo.shared.slots import Slot
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class Session:
+class Session(BaseModel):
     """
     This class tracks the state of a conversation for a particular session.
     It stores information such as intents, entities, and user messages.
@@ -21,10 +21,10 @@ class Session:
 
     session_id: str
     slots: Dict[str, Slot]
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    status: SessionStatus = field(default=SessionStatus.ACTIVE)
-    events: List["Event"] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    status: SessionStatus = Field(default=SessionStatus.ACTIVE)
+    events: List["EventUnion"] = Field(default_factory=list)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
 
     @property
     def active(self):

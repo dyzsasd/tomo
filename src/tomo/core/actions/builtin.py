@@ -1,8 +1,9 @@
 # pylint: disable=C0301
 # Line too long
-from dataclasses import field
 import logging
 import typing
+
+from pydantic import Field
 
 from tomo.core.events import BotUttered, UserUttered, SlotSet, SlotUnset
 from tomo.nlu.models import Entity
@@ -38,8 +39,8 @@ class ActionReinitializeSlot(Action):
         str
     ] = "Reset all the slot in the value, happens when to reinitialize the session."
 
-    slots: typing.List[str] = field(
-        metadata={"description": "Slot name which need to be initialized"}
+    slots: typing.List[str] = Field(
+        description="Slot name which need to be initialized"
     )
 
     async def run(
@@ -59,9 +60,7 @@ class ActionBotUtter(Action):
         str
     ] = "Send a message to user for reply or for asking a question."
 
-    message: str = field(
-        metadata={"description": "Message which will be sent to User."}
-    )
+    message: str = Field(description="Message which will be sent to User.")
 
     async def run(
         self, output_channel: OutputChannel, session: Session
@@ -137,9 +136,7 @@ class ActionSessionStart(Action):
         str
     ] = "Start the session by sending a greet message to user."
 
-    greeting_message: str = field(
-        metadata={"description": "Message which will be sent to User"}
-    )
+    greeting_message: str = Field(description="Message which will be sent to User")
 
     async def run(
         self, output_channel: OutputChannel, session: Session
@@ -158,6 +155,11 @@ class ActionDisableSession(Action):
     description: typing.ClassVar[str] = "Turn off the session immediately"
     "Turn off action"
 
+    async def run(
+        self, output_channel: OutputChannel, session: Session
+    ) -> typing.Optional[typing.List[Event]]:
+        return []
+
 
 class ActionUpdateStep(Action):
     name: typing.ClassVar[str] = "update_step"
@@ -165,10 +167,8 @@ class ActionUpdateStep(Action):
         str
     ] = "Updates the 'step' slot to indicate the current step in the workflow."
 
-    step_name: str = field(
-        metadata={
-            "description": "The name of the current step to be set in the 'step' slot."
-        }
+    step_name: str = Field(
+        description="The name of the current step to be set in the 'step' slot."
     )
 
     async def run(

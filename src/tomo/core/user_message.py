@@ -1,4 +1,5 @@
 import abc
+from datetime import datetime
 import uuid
 from typing import Any, Dict, Optional
 
@@ -9,15 +10,22 @@ class UserMessage(abc.ABC):
     """Represents an incoming message, including the channel for sending responses."""
 
     parse_data: Optional[dict] = None
+    timestamp: Optional[dict] = None
 
     @property
     @abc.abstractmethod
     def text(self) -> str:
         pass
 
-    def __init__(self, session_id: str, output_channel: Optional[OutputChannel]):
+    def __init__(
+        self,
+        session_id: str,
+        output_channel: Optional[OutputChannel],
+        timestamp: datetime,
+    ):
         self.session_id = session_id
         self.output_channel = output_channel
+        self.timestamp = timestamp
 
 
 class TextUserMessage(UserMessage):
@@ -36,6 +44,7 @@ class TextUserMessage(UserMessage):
         input_channel: Optional[str] = None,
         message_id: Optional[str] = None,
         metadata: Optional[Dict] = None,
+        timestamp: Optional[datetime] = None,
         **kwargs: Any,
     ) -> None:
         """Creates a ``UserMessage`` object.
@@ -49,7 +58,7 @@ class TextUserMessage(UserMessage):
             message_id: ID of the message (auto-generated if not provided).
             metadata: additional metadata for this message.
         """
-        super().__init__(session_id, output_channel)
+        super().__init__(session_id, output_channel, timestamp)
         # Initialize message attributes
         self._text = text.strip() if text else text
         self.message_id = str(message_id) if message_id else uuid.uuid4().hex

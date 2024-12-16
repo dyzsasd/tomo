@@ -1,9 +1,9 @@
-from dataclasses import dataclass
 from typing import Any, Optional
 
+from pydantic import BaseModel
 
-@dataclass
-class Slot:
+
+class Slot(BaseModel):
     """
     Represents a key-value pair to store context or information extracted from the user
     during the conversation.

@@ -1,14 +1,13 @@
 import typing
-from dataclasses import dataclass
+
 from pydantic import BaseModel, Field
 
 from tomo.shared.action import Action
 
 
-@dataclass
-class PolicyPrediction:
-    policy_name: typing.Optional[str]
-    actions: typing.List[Action]
+class PolicyPrediction(BaseModel):
+    policy_name: typing.Optional[str] = Field(None)
+    actions: typing.List[Action] = Field(default_factory=list)
 
     @property
     def action_names(self):

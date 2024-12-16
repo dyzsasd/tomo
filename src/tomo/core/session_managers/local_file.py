@@ -1,5 +1,4 @@
 from copy import deepcopy
-from datetime import datetime, timezone
 import glob
 import json
 import logging
@@ -12,12 +11,9 @@ from aiofiles import open as aio_open
 from aiofiles.os import remove as aio_remove
 
 from tomo.assistant import Assistant
-from tomo.core.events import Event
 from tomo.core.models import SessionStatus
 from tomo.core.session import Session
 from tomo.shared.exceptions import TomoException
-from tomo.shared.slots import Slot
-from tomo.utils.json import JsonEngine
 
 from .base import SessionManager
 
@@ -128,7 +124,8 @@ class FileSessionManager(SessionManager):
             return None
 
         try:
-            return self.from_dict(session_data)
+            session = Session.model_validate(session_data)
+            return session
         except Exception as e:
             logger.error(f"Error deserializing session {session_id}: {e}")
             raise e
@@ -146,7 +143,7 @@ class FileSessionManager(SessionManager):
         file_path = self._get_session_path(session.session_id)
 
         # Add metadata for session management
-        session_data = self.to_dict(session)
+        session_data = session.model_dump(mode="json")
         session_data["_metadata"] = {"last_modified": time.time()}
 
         await self._write_session_file(file_path, session_data)
@@ -236,42 +233,3 @@ class FileSessionManager(SessionManager):
             "total_size_bytes": total_size,
             "storage_path": str(self.storage_path),
         }
-
-    def to_dict(self, session: Session):
-        return {
-            "session_id": session.session_id,
-            "events": [JsonEngine.to_json(event) for event in session.events],
-            "slots": {
-                key: JsonEngine.to_json(slot) for key, slot in session.slots.items()
-            },
-            "status": session.status,
-            "metadata": session.metadata,
-            "created_at": session.created_at.isoformat(),
-        }
-
-    def from_dict(self, data: dict):
-        session_id = data["session_id"]
-        events = [
-            JsonEngine.from_json(event_data, Event) for event_data in data["events"]
-        ]
-        slots = {
-            key: JsonEngine.from_json(slot_data, Slot)
-            for key, slot_data in data["slots"].items()
-        }
-        status = data.get("status")
-        metadata = data.get("metadata", {})
-        created_at_str = data.get("created_at")
-        if created_at_str is None:
-            created_at = datetime.now(timezone.utc)
-        else:
-            created_at = datetime.fromisoformat(created_at_str)
-        session = Session(
-            session_id=session_id,
-            slots=slots,
-            created_at=created_at,
-            status=status,
-            events=events,
-            metadata=metadata,
-        )
-
-        return session

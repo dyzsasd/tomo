@@ -7,6 +7,7 @@ from tomo.core.user_message import TextUserMessage
 from ..channels.websocket import WebSocketOutputChannel
 from ..managers.websocket import WebSocketManager
 from ..core import TomoService
+from ..models import WebSocketMessage, MessageType
 
 
 logger = logging.getLogger(__name__)
@@ -31,16 +32,30 @@ async def handle_websocket(
         output_channel = WebSocketOutputChannel(websocket, session_id)
 
         while True:
-            message = await websocket.receive_text()
+            raw_message = await websocket.receive_json()
+            message = WebSocketMessage.model_validate(raw_message)
+
             logger.debug(f"processing message: {message}")
+
+            text = "\n".join(
+                [
+                    content.value
+                    for content in message.contents
+                    if content.content_type == MessageType.TEXT
+                ]
+            )
+
+            if len(text) == 0:
+                raise ValueError("text content is empty")
 
             # Get lock for this session
             async with websocket_manager.locks[session_id]:
                 user_message = TextUserMessage(
-                    text=message,
-                    output_channel=output_channel,
+                    text=text,
                     session_id=session_id,
+                    output_channel=output_channel,
                     input_channel="websocket",
+                    timestamp=message.timestamp,
                 )
                 await tomo_service.message_processor.handle_message(user_message)
     except WebSocketDisconnect:
