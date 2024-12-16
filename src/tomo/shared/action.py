@@ -2,16 +2,17 @@ import abc
 import logging
 import typing
 
+from pydantic import BaseModel
+
 from tomo.core.events.base import Event
 from tomo.shared.output_channel import OutputChannel
 from tomo.core.session import Session
-from tomo.utils.json import DataclassABC
 
 logger = logging.getLogger(__name__)
 
 
-class Action(DataclassABC):
-    subclasses = {}
+class Action(BaseModel):
+    subclasses: typing.ClassVar[dict[str, typing.Any]] = {}
 
     @classmethod
     def get_action_cls(cls, action_name):
@@ -53,8 +54,8 @@ class Action(DataclassABC):
 
 
 class DummyAction(Action):
-    name = "dummy"
-    description = "dummy action for test purpose"
+    name: typing.ClassVar[str] = "dummy"
+    description: typing.ClassVar[str] = "dummy action for test purpose"
 
     async def run(
         self, output_channel: OutputChannel, session: Session

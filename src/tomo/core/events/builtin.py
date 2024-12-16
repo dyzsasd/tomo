@@ -1,6 +1,7 @@
-from dataclasses import field
 import logging
 import typing
+
+from pydantic import Field
 
 from tomo.nlu.models import Entity, IntentExtraction
 from tomo.core.events.base import Event
@@ -21,6 +22,7 @@ class SessionShutdown(Event):
     """
 
     name: typing.ClassVar[str] = "shut down conversation"
+    event_type: str = "session_shutdown"
 
     def apply_to(self, session: "Session") -> None:
         """Deactivate the session."""
@@ -36,10 +38,11 @@ class UserUttered(Event):
     """
 
     name: typing.ClassVar[str] = "user talked"
+    event_type: str = "user_uttered"
 
-    message_id: str = field(default="")
-    text: str = field(default="")
-    input_channel: str = field(default="")
+    message_id: str = Field(default="")
+    text: str = Field(default="")
+    input_channel: str = Field(default="")
     intent: typing.Optional[IntentExtraction] = None
     entities: typing.Optional[typing.List[Entity]] = None
 
@@ -50,7 +53,7 @@ class UserUttered(Event):
         Args:
             session: The session that will be updated with the user's message.
         """
-        session.latest_message = self.text
+        session.status = SessionStatus.ACTIVE
 
     @property
     def intent_name(self) -> typing.Optional[str]:
@@ -77,6 +80,7 @@ class BotUttered(Event):
     """
 
     name: typing.ClassVar[str] = "Bot talked"
+    event_type: str = "bot_uttered"
 
     text: typing.Optional[str] = None
     data: typing.Optional[typing.Dict] = None
@@ -102,6 +106,8 @@ class SlotSet(Event):
         key: The name of the slot being set.
         value: The value to assign to the slot (can be `None` to clear the slot).
     """
+
+    event_type: str = "slot_set"
 
     key: str = ""
     value: typing.Optional[typing.Any] = None
@@ -131,6 +137,8 @@ class SlotUnset(Event):
         key: The name of the slot being set.
     """
 
+    event_type: str = "slot_unset"
+
     key: str = ""
 
     def apply_to(self, session: "Session") -> None:
@@ -158,6 +166,8 @@ class ActionExecuted(Event):
         policy: The policy that predicted this action (optional).
     """
 
+    event_type: str = "action_executed"
+
     action_name: str = ""
     policy: typing.Optional[str] = None
 
@@ -168,7 +178,6 @@ class ActionExecuted(Event):
         Args:
             session: The session where the action was executed.
         """
-        session.latest_action = self.action_name
 
     @property
     def name(self):
@@ -176,6 +185,8 @@ class ActionExecuted(Event):
 
 
 class ActionFailed(Event):
+    event_type: str = "action_failed"
+
     action_name: str = ""
     policy: typing.Optional[str] = None
 
@@ -195,6 +206,8 @@ class SessionStarted(Event):
     This event resets the session to its initial state when applied.
     """
 
+    event_type: str = "session_started"
+
     name: typing.ClassVar[str] = "session started"
 
     def apply_to(self, session: "Session") -> None:
@@ -212,6 +225,8 @@ class SessionDisabled(Event):
     Event to disable a session.
 
     """
+
+    event_type: str = "session_disabled"
 
     name: typing.ClassVar[str] = "session disabled"
 

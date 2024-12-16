@@ -1,16 +1,14 @@
 import abc
-from dataclasses import field
 from datetime import datetime, timezone
-import json
 import typing
 
-from tomo.utils.json import DataclassABC, JsonEngine
+from pydantic import BaseModel, Field
 
 if typing.TYPE_CHECKING:
     from tomo.core.session import Session  # Forward declaration
 
 
-class Event(DataclassABC):
+class Event(BaseModel):
     """
     Base class for events that occur during a session.
 
@@ -19,7 +17,8 @@ class Event(DataclassABC):
     carries metadata and can be applied to the session to update its state.
     """
 
-    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    event_type: str = Field(description="event type")
 
     @abc.abstractmethod
     def apply_to(self, session: "Session") -> None:
@@ -42,15 +41,3 @@ class Event(DataclassABC):
     @abc.abstractmethod
     def name(self):
         pass
-
-    def as_dict(self) -> typing.Dict[str, typing.Any]:
-        """Convert the event to a dictionary format for serialization."""
-        return JsonEngine.to_json(self)
-
-    def __eq__(self, other: typing.Any) -> bool:
-        """Compare two events for equality based on their dictionary representation."""
-        return isinstance(other, Event) and self.as_dict() == other.as_dict()
-
-    def __hash__(self) -> int:
-        """Generate a hash value for the event, used for storing events in sets or dicts."""
-        return hash(json.dumps(self.as_dict()))

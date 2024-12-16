@@ -1,10 +1,9 @@
-import dataclasses
 import typing
-from dataclasses import dataclass
+
+from pydantic import BaseModel, Field
 
 
-@dataclass
-class BotMessage:
+class BotMessage(BaseModel):
     recipient_id: typing.Optional[str]
     text: typing.Optional[str] = None
     quick_replies: typing.Optional[typing.List[typing.Dict[str, typing.Any]]] = None
@@ -13,6 +12,4 @@ class BotMessage:
     image: typing.Optional[str] = None
     attachment: typing.Optional[str] = None
     elements: typing.Optional[typing.List[typing.Dict[str, typing.Any]]] = None
-    additional_properties: typing.Dict[str, typing.Any] = dataclasses.field(
-        default_factory=dict
-    )
+    additional_properties: typing.Dict[str, typing.Any] = Field(default_factory=dict)
