@@ -4,7 +4,7 @@ from typing import Union, Type
 from pydantic import BaseModel
 
 
-def get_event_union(base_class: Type[BaseModel]) -> Type:
+def get_sub_classes_union(base_class: Type[BaseModel]) -> Type:
     """
     Dynamically generate a Union type of all subclasses of the given base class.
     """
