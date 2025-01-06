@@ -1,4 +1,3 @@
-from copy import deepcopy
 import glob
 import json
 import logging
@@ -10,7 +9,6 @@ from pathlib import Path
 from aiofiles import open as aio_open
 from aiofiles.os import remove as aio_remove
 
-from tomo.assistant import Assistant
 from tomo.core.models import SessionStatus
 from tomo.core.session import Session
 from tomo.shared.exceptions import TomoException
@@ -26,7 +24,6 @@ class FileSessionManager(SessionManager):
 
     def __init__(
         self,
-        assistant: Assistant,
         storage_path: str = "sessions",
         file_extension: str = ".json",
     ):
@@ -34,11 +31,9 @@ class FileSessionManager(SessionManager):
         Initialize the file session manager
 
         Args:
-            assistant: The assistant instance containing slot definitions
             storage_path: Directory path where session files will be stored
             file_extension: File extension for session files
         """
-        self.assistant = assistant
         self.storage_path = Path(storage_path)
         self.file_extension = file_extension
         self._ensure_storage_exists()
@@ -97,8 +92,7 @@ class FileSessionManager(SessionManager):
             )
 
         logger.info(f"creating new session {session_id}")
-        # Initialize new session with assistant slots
-        slots = {slot.name: deepcopy(slot) for slot in self.assistant.slots}
+        slots = {}
         session = Session(
             session_id=session_id,
             slots=slots,

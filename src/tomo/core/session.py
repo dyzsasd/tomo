@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
+from tomo.core.policies.models import ExtractedAction
 from tomo.core.events import EventUnion, UserUttered, BotUttered
 from tomo.core.models import SessionStatus
 from tomo.shared.slots import Slot
@@ -21,6 +22,7 @@ class Session(BaseModel):
 
     session_id: str
     slots: Dict[str, Slot]
+    pending_actions: List[ExtractedAction] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     status: SessionStatus = Field(default=SessionStatus.ACTIVE)
     events: List["EventUnion"] = Field(default_factory=list)

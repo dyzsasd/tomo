@@ -100,7 +100,7 @@ def json_slot_instruction(session: Session, only_extractable=False) -> str:
 
 def json_generate_action_instruction(action: Type[Action]):
     instructions = {
-        "action name": action.name,
+        "action name": action.action_name(),
         "description": action.description,
     }
     required_slots = action.required_slots()

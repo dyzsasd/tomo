@@ -6,7 +6,9 @@ from pydantic import BaseModel
 
 from tomo.core.events.base import Event
 from tomo.shared.output_channel import OutputChannel
-from tomo.core.session import Session
+
+if typing.TYPE_CHECKING:
+    from tomo.core.session import Session
 
 logger = logging.getLogger(__name__)
 
@@ -27,15 +29,14 @@ class Action(BaseModel):
     def __init_subclass__(cls, **kwargs):
         """Automatically record each subclass."""
         super().__init_subclass__(**kwargs)
-        action_name = cls.name
+        action_name = cls.action_name()
         if action_name in Action.subclasses:
             logger.fatal(f"action {action_name} exists already.")
         Action.subclasses[action_name] = cls  # Store subclass by name
 
-    @property
-    @abc.abstractmethod
-    def name(self):
-        pass
+    @classmethod
+    def action_name(cls):
+        return cls.__name__
 
     @property
     @abc.abstractmethod
@@ -48,17 +49,16 @@ class Action(BaseModel):
 
     @abc.abstractmethod
     async def run(
-        self, output_channel: OutputChannel, session: Session
+        self, output_channel: OutputChannel, session: "Session"
     ) -> typing.Optional[typing.List[Event]]:
         pass
 
 
 class DummyAction(Action):
-    name: typing.ClassVar[str] = "dummy"
     description: typing.ClassVar[str] = "dummy action for test purpose"
 
     async def run(
-        self, output_channel: OutputChannel, session: Session
+        self, output_channel: OutputChannel, session: "Session"
     ) -> typing.Optional[typing.List[Event]]:
         logger.info("Executing dummy action")
         return []

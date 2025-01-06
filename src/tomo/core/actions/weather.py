@@ -5,14 +5,15 @@ from tomo.core.events import SlotSet
 from tomo.shared.action import Action
 from tomo.core.events.base import Event
 from tomo.shared.output_channel import OutputChannel
-from tomo.core.session import Session
+
+if typing.TYPE_CHECKING:
+    from tomo.core.session import Session
 
 
 logger = logging.getLogger(__name__)
 
 
 class FindWeather(Action):
-    name: typing.ClassVar[str] = "find_weather"
     description: typing.ClassVar[
         str
     ] = "Find the weather information according to the location and date"
@@ -25,7 +26,7 @@ class FindWeather(Action):
         ]
 
     async def run(
-        self, output_channel: OutputChannel, session: Session
+        self, output_channel: OutputChannel, session: "Session"
     ) -> typing.Optional[typing.List[Event]]:
         date = session.slots.get("date")
         city = session.slots.get("city")

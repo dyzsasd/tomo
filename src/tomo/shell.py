@@ -71,7 +71,7 @@ async def main(config_path):
     assistant = Assistant(config=assistant_config)
 
     # Step 3: Initialize dependencies required by MessageProcessor using assistant components
-    session_manager = InMemorySessionManager(assistant=assistant)
+    session_manager = InMemorySessionManager()
     policy_manager = LocalPolicyManager(
         policies=assistant.policies,  # Use policies from the Assistant instance
     )

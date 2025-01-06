@@ -63,11 +63,11 @@ assistant:
         pnr_detail information can be retrieved by retrieve_pnr action, it need pnr_number as input which should be given by customer. Once pnr_detail
         is retrieved, we need the customer to confirm it is the right flight booking that they want to check the condition.
       actions:
-        - retrieve_pnr
-        - parse_pnr
-        - retrieve_fare_rule
-        - bot_utter
-        - listen
+        - RetrievePNR
+        - ParsePNR
+        - RetrieveFareRules
+        - BotUtter
+        - Listen
       llm_config:
         llm_type: openai
         llm_params:
@@ -85,9 +85,9 @@ assistant:
         if the fare_rules slot is filled, this policy should trigger the calculation of the refund fee.
         The assistant should ask the reason of the refund, then the refund_fee can be calculated by calculate_refund_fee action based on refund reason and fare rules.
       actions:
-        - calculate_refund_fee
-        - bot_utter
-        - listen
+        - CalculateRefundFee
+        - BotUtter
+        - Listen
       llm_config:
         llm_type: openai
         llm_params:

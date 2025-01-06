@@ -64,6 +64,17 @@ class SlotResponse(BaseModel):
     slots: List[SlotInfo]
 
 
+class PendingAction(BaseModel):
+    "Pending action in a session"
+    session_id: str
+    action_name: str
+
+
+class PendingActionsResponse(BaseModel):
+    "Pending actions in a session"
+    pending_actions: List[PendingAction]
+
+
 class Event(BaseModel):
     """
     Model for session events

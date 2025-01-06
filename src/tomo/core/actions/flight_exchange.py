@@ -12,14 +12,16 @@ from tomo.core.events import (
 from tomo.shared.action import Action
 from tomo.core.events.base import Event
 from tomo.shared.output_channel import OutputChannel
-from tomo.core.session import Session
 from tomo.shared.exceptions import TomoFatalException
+
+if typing.TYPE_CHECKING:
+    from tomo.core.session import Session
+
 
 logger = logging.getLogger(__name__)
 
 
 class ValidateServiceAvailability(Action):
-    name: typing.ClassVar[str] = "validate_service_availability"
     description: typing.ClassVar[
         str
     ] = "Validate if the service is available in the client's market."
@@ -29,7 +31,7 @@ class ValidateServiceAvailability(Action):
         return ["client_location"]
 
     async def run(
-        self, output_channel: OutputChannel, session: Session
+        self, output_channel: OutputChannel, session: "Session"
     ) -> typing.Optional[typing.List[Event]]:
         client_location = session.slots.get("client_location")
         if not client_location:
@@ -65,7 +67,6 @@ class ValidateServiceAvailability(Action):
 
 
 class ActionExchangeShopping(Action):
-    name: typing.ClassVar[str] = "exchange_shopping"
     description: typing.ClassVar[
         str
     ] = "Validate if the service is available in the client's market."
@@ -75,7 +76,7 @@ class ActionExchangeShopping(Action):
         return ["pnr_details", "new_itinerary"]
 
     async def run(
-        self, output_channel: OutputChannel, session: Session
+        self, output_channel: OutputChannel, session: "Session"
     ) -> typing.Optional[typing.List[Event]]:
         client_location = session.slots.get("client_location")
         if not client_location:
@@ -111,7 +112,6 @@ class ActionExchangeShopping(Action):
 
 
 class RetrievePNR(Action):
-    name: typing.ClassVar[str] = "retrieve_pnr"
     description: typing.ClassVar[
         str
     ] = "Retrieve the Passenger Name Record (PNR) details using TravelItineraryReadLLSRQ."
@@ -121,7 +121,7 @@ class RetrievePNR(Action):
         return ["pnr_number"]
 
     async def run(
-        self, output_channel: OutputChannel, session: Session
+        self, output_channel: OutputChannel, session: "Session"
     ) -> typing.Optional[typing.List[Event]]:
         slot = session.slots.get("pnr_number")
         if not slot:
@@ -145,7 +145,6 @@ class RetrievePNR(Action):
 
 
 class CancelExistingItinerary(Action):
-    name: typing.ClassVar[str] = "cancel_existing_itinerary"
     description: typing.ClassVar[
         str
     ] = "Cancel the existing itinerary in the PNR using OTA_CancelLLSRQ."
@@ -155,7 +154,7 @@ class CancelExistingItinerary(Action):
         return ["pnr_details"]
 
     async def run(
-        self, output_channel: OutputChannel, session: Session
+        self, output_channel: OutputChannel, session: "Session"
     ) -> typing.Optional[typing.List[Event]]:
         pnr_details = session.slots.get("pnr_details")
         if not pnr_details:
@@ -191,7 +190,6 @@ class CancelExistingItinerary(Action):
 
 
 class BookNewItinerary(Action):
-    name: typing.ClassVar[str] = "book_new_itinerary"
     description: typing.ClassVar[
         str
     ] = "Book the new air itinerary as requested by the client using OTA_AirBookLLSRQ or EnhancedAirBookRQ."
@@ -201,7 +199,7 @@ class BookNewItinerary(Action):
         return ["new_itinerary_details"]
 
     async def run(
-        self, output_channel: OutputChannel, session: Session
+        self, output_channel: OutputChannel, session: "Session"
     ) -> typing.Optional[typing.List[Event]]:
         new_itinerary_details = session.slots.get("new_itinerary_details")
         if not new_itinerary_details:
@@ -235,7 +233,6 @@ class BookNewItinerary(Action):
 
 
 class PriceTheExchange(Action):
-    name: typing.ClassVar[str] = "price_the_exchange"
     description: typing.ClassVar[
         str
     ] = "Price the exchange based on the new itinerary and calculate any additional fees or refunds using AutomatedExchangesLLSRQ."
@@ -245,7 +242,7 @@ class PriceTheExchange(Action):
         return ["original_ticket_number", "new_itinerary_details"]
 
     async def run(
-        self, output_channel: OutputChannel, session: Session
+        self, output_channel: OutputChannel, session: "Session"
     ) -> typing.Optional[typing.List[Event]]:
         original_ticket_number = session.slots.get("original_ticket_number")
         new_itinerary_details = session.slots.get("new_itinerary_details")
@@ -295,7 +292,6 @@ class PriceTheExchange(Action):
 
 
 class EvaluatePricingInformation(Action):
-    name: typing.ClassVar[str] = "evaluate_pricing_information"
     description: typing.ClassVar[
         str
     ] = "Evaluate the returned pricing information and decide whether to proceed or ignore the transaction."
@@ -305,7 +301,7 @@ class EvaluatePricingInformation(Action):
         return ["pricing_information"]
 
     async def run(
-        self, output_channel: OutputChannel, session: Session
+        self, output_channel: OutputChannel, session: "Session"
     ) -> typing.Optional[typing.List[Event]]:
         pricing_information = session.slots.get("pricing_information")
         if not pricing_information:
@@ -341,7 +337,6 @@ class EvaluatePricingInformation(Action):
 
 
 class ConfirmExchange(Action):
-    name: typing.ClassVar[str] = "confirm_exchange"
     description: typing.ClassVar[
         str
     ] = "Confirm and store the exchange using ExchangeConfirmation in AutomatedExchangesLLSRQ."
@@ -351,7 +346,7 @@ class ConfirmExchange(Action):
         return ["pqr_number"]
 
     async def run(
-        self, output_channel: OutputChannel, session: Session
+        self, output_channel: OutputChannel, session: "Session"
     ) -> typing.Optional[typing.List[Event]]:
         pqr_number = session.slots.get("pqr_number")
         if not pqr_number:
@@ -385,7 +380,6 @@ class ConfirmExchange(Action):
 
 
 class EndAndRetrieveUpdatedPNR(Action):
-    name: typing.ClassVar[str] = "end_and_retrieve_updated_pnr"
     description: typing.ClassVar[
         str
     ] = "Commit the changes to the PNR after the exchange details are confirmed and retrieve the updated PNR."
@@ -395,7 +389,7 @@ class EndAndRetrieveUpdatedPNR(Action):
         return ["pnr_number"]
 
     async def run(
-        self, output_channel: OutputChannel, session: Session
+        self, output_channel: OutputChannel, session: "Session"
     ) -> typing.Optional[typing.List[Event]]:
         pnr_number = session.slots.get("pnr_number")
         if not pnr_number:
@@ -436,7 +430,6 @@ class EndAndRetrieveUpdatedPNR(Action):
 
 
 class TicketTheExchange(Action):
-    name: typing.ClassVar[str] = "ticket_the_exchange"
     description: typing.ClassVar[
         str
     ] = "Issue the exchanged ticket based on the updated PNR information using AirTicketLLSRQ."
@@ -446,7 +439,7 @@ class TicketTheExchange(Action):
         return ["reissue_number"]
 
     async def run(
-        self, output_channel: OutputChannel, session: Session
+        self, output_channel: OutputChannel, session: "Session"
     ) -> typing.Optional[typing.List[Event]]:
         reissue_number = session.slots.get("reissue_number")
         if not reissue_number:
@@ -480,13 +473,12 @@ class TicketTheExchange(Action):
 
 
 class CompletionConfirmation(Action):
-    name: typing.ClassVar[str] = "completion_confirmation"
     description: typing.ClassVar[
         str
     ] = "Confirm the completion of the ticket exchange to the client."
 
     async def run(
-        self, output_channel: OutputChannel, session: Session
+        self, output_channel: OutputChannel, session: "Session"
     ) -> typing.Optional[typing.List[Event]]:
         message = "Your ticket exchange is complete. A confirmation email has been sent to you."
         await output_channel.send_text_message(message)
@@ -499,13 +491,12 @@ class CompletionConfirmation(Action):
 
 
 class AskHumanConfirmation(Action):
-    name: typing.ClassVar[str] = "ask_human_confirmation"
     description: typing.ClassVar[
         str
     ] = "Send a request to a human agent to review and approve the exchange before ticketing."
 
     async def run(
-        self, output_channel: OutputChannel, session: Session
+        self, output_channel: OutputChannel, session: "Session"
     ) -> typing.Optional[typing.List[Event]]:
         logger.debug("Requesting human agent approval.")
         # Placeholder for notifying human agent

@@ -44,9 +44,7 @@ class TomoService:
         self.assistant = Assistant(config=assistant_config)
 
         # Initialize core components
-        self.session_manager: SessionManager = FileSessionManager(
-            assistant=self.assistant
-        )
+        self.session_manager: SessionManager = FileSessionManager()
         self.policy_manager = LocalPolicyManager(policies=self.assistant.policies)
         self.action_executor = ActionExector()
         self.nlu_parser = self.assistant.nlu_parser

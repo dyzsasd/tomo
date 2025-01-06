@@ -1,9 +1,7 @@
-from copy import deepcopy
 import logging
 import time
 from typing import Dict, Optional
 
-from tomo.assistant import Assistant
 from tomo.core.session import Session
 
 from .base import SessionManager
@@ -17,9 +15,8 @@ class InMemorySessionManager(SessionManager):
     A simple in-memory session manager that stores session objects in memory.
     """
 
-    def __init__(self, assistant: Assistant) -> None:
+    def __init__(self) -> None:
         """Initialize an empty dictionary to store active sessions."""
-        self.assistant = assistant
         self.sessions: Dict[str, Session] = {}
 
     async def list_sessions(self) -> list[str]:
@@ -42,8 +39,7 @@ class InMemorySessionManager(SessionManager):
             raise RuntimeError(
                 f"Cannot create session, session id {session_id} exist already !"
             )
-
-        slots = {slot.name: deepcopy(slot) for slot in self.assistant.slots}
+        slots = {}
         session = Session(session_id, slots=slots)
         self.sessions[session_id] = session
 

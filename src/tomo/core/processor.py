@@ -7,7 +7,7 @@ from tomo.core.actions import (
     Action,
     ActionDisableSession,
     ActionExtractSlots,
-    ActionListen,
+    Listen,
 )
 from tomo.core.events import ActionFailed, ActionExecuted, Event, UserUttered
 from tomo.core.session import Session
@@ -207,7 +207,7 @@ class MessageProcessor:
                 return events
 
         async def _should_continue_loop(prediction: PolicyPrediction) -> bool:
-            return not ActionListen.name in prediction.action_names
+            return not Listen.name in prediction.action_names
 
         continue_loop = True
         while continue_loop:

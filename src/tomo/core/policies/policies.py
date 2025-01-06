@@ -3,7 +3,7 @@ import asyncio
 import logging
 from typing import Optional
 
-from tomo.core.actions import ActionBotUtterQuickReply
+from tomo.core.actions import BotUtterQuickReply
 from tomo.core.session import Session
 
 from .models import PolicyPrediction
@@ -59,5 +59,5 @@ class QuickResponsePolicy(Policy):
             return None
 
         await asyncio.sleep(self.waiting_time / 1000)
-        action = ActionBotUtterQuickReply(message=self.message)
+        action = BotUtterQuickReply(message=self.message)
         return PolicyPrediction(policy_name=self.name, actions=[action])

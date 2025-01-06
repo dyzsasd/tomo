@@ -8,14 +8,15 @@ from tomo.core.events import SlotSet
 from tomo.shared.action import Action
 from tomo.core.events.base import Event
 from tomo.shared.output_channel import OutputChannel
-from tomo.core.session import Session
+
+if typing.TYPE_CHECKING:
+    from tomo.core.session import Session
 
 
 logger = logging.getLogger(__name__)
 
 
-class ActionParsePNR(Action):
-    name: typing.ClassVar[str] = "parse_pnr"
+class ParsePNR(Action):
     description: typing.ClassVar[
         str
     ] = "Parse the PNR information to retrieve the origin, destination, marketing_carrier and fare_basis_code"
@@ -25,7 +26,7 @@ class ActionParsePNR(Action):
         return ["pnr_details"]
 
     async def run(
-        self, output_channel: OutputChannel, session: Session
+        self, output_channel: OutputChannel, session: "Session"
     ) -> typing.Optional[typing.List[Event]]:
         return [
             SlotSet(
@@ -47,8 +48,7 @@ class ActionParsePNR(Action):
         ]
 
 
-class ActionRetrieveFareRules(Action):
-    name: typing.ClassVar[str] = "retrieve_fare_rule"
+class RetrieveFareRules(Action):
     description: typing.ClassVar[str] = "Retrieve Fare rules by querying GDS API"
 
     @classmethod
@@ -61,7 +61,7 @@ class ActionRetrieveFareRules(Action):
         ]
 
     async def run(
-        self, output_channel: OutputChannel, session: Session
+        self, output_channel: OutputChannel, session: "Session"
     ) -> typing.Optional[typing.List[Event]]:
         return [
             SlotSet(
@@ -71,8 +71,7 @@ class ActionRetrieveFareRules(Action):
         ]
 
 
-class ActionCalculateRefundFee(Action):
-    name: typing.ClassVar[str] = "calculate_refund_fee"
+class CalculateRefundFee(Action):
     description: typing.ClassVar[
         str
     ] = "Calculate the refund fee and the fee breakdown according to fare rules and refund reason"
@@ -85,7 +84,7 @@ class ActionCalculateRefundFee(Action):
         ]
 
     async def run(
-        self, output_channel: OutputChannel, session: Session
+        self, output_channel: OutputChannel, session: "Session"
     ) -> typing.Optional[typing.List[Event]]:
         return [
             SlotSet(
