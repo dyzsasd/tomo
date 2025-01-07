@@ -52,10 +52,11 @@ class Session(BaseModel):
             slot.reset()
 
     def set_slot(self, key: str, value: Any) -> None:
+        logger.debug(f"Set slot {key}")
         slot: Slot = self.slots.get(key)
         if slot is None:
-            logger.error("Slot setting failed, cannot find slot {key} from session.")
-            return
+            slot = Slot(name=key, extractable=True, value=value)
+            self.slots[key] = slot
         slot.set_value(value)
 
     def unset_slot(self, key: str) -> None:

@@ -12,7 +12,7 @@ from tomo.core.policies import LocalPolicyManager
 from tomo.core.processor import MessageProcessor
 from tomo.core.session_managers import InMemorySessionManager
 from tomo.core.user_message import TextUserMessage
-from tomo.shared.action_executor import ActionExector
+
 from tomo.config import AssistantConfigLoader
 
 # Load environment variables from .env file
@@ -75,14 +75,12 @@ async def main(config_path):
     policy_manager = LocalPolicyManager(
         policies=assistant.policies,  # Use policies from the Assistant instance
     )
-    action_executor = ActionExector()
     nlu_parser = assistant.nlu_parser  # Use NLU parser from the Assistant instance
 
     # Step 4: Initialize the MessageProcessor with required dependencies
     message_processor = MessageProcessor(
         session_manager=session_manager,
         policy_manager=policy_manager,
-        action_exector=action_executor,
         nlu_parser=nlu_parser,
     )
 

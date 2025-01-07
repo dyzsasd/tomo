@@ -2,12 +2,12 @@ from datetime import datetime
 from typing import Dict, Optional, List, Any
 import logging
 
-from tomo.core.output_channels import CollectingOutputChannel
+from tomo.core.events import UserUttered
+from tomo.core.output_channels import OutputChannel
 from tomo.core.policies import LocalPolicyManager
-from tomo.core.processor import MessageProcessor
 from tomo.core.session_managers import FileSessionManager
+from tomo.core.session_processor import SessionProcessor
 from tomo.core.user_message import TextUserMessage
-from tomo.shared.action_executor import ActionExector
 from tomo.core.session_managers.base import SessionManager
 from tomo.config import AssistantConfigLoader
 from tomo.assistant import Assistant
@@ -46,43 +46,45 @@ class TomoService:
         # Initialize core components
         self.session_manager: SessionManager = FileSessionManager()
         self.policy_manager = LocalPolicyManager(policies=self.assistant.policies)
-        self.action_executor = ActionExector()
         self.nlu_parser = self.assistant.nlu_parser
 
-        # Initialize message processor
-        self.message_processor = MessageProcessor(
+        self.session_processor = SessionProcessor(
             session_manager=self.session_manager,
             policy_manager=self.policy_manager,
-            action_exector=self.action_executor,
-            nlu_parser=self.nlu_parser,
         )
 
         logger.info("Tomo service initialized successfully")
 
+    async def evolve_session(self, session_id: str, output_channel: OutputChannel):
+        await self.session_processor.evolve_session(session_id, output_channel)
+
     async def handle_message(
-        self, session_id: str, message_text: str
-    ) -> List[Dict[str, Any]]:
-        """
-        Process a message and return bot responses
+        self, session_id: str, message_text: str, output_channel: OutputChannel
+    ):
+        session = await self.session_manager.get_session(session_id)
+        if session is None:
+            raise RuntimeError(f"Session {session_id} not exist.")
 
-        Args:
-            session_id: The session identifier
-            message_text: The user's message text
-
-        Returns:
-            List of bot response messages
-        """
-        output_channel = CollectingOutputChannel()
-
-        user_message = TextUserMessage(
+        message = TextUserMessage(
             text=message_text,
             output_channel=output_channel,
             session_id=session_id,
             input_channel="websocket",
         )
+        parse_data = await self.nlu_parser.parse(message, session)
+        self.session_manager.update_with_event(
+            session_id=session.session_id,
+            event=UserUttered(
+                message_id=message.message_id,
+                text=message.text,
+                input_channel=message.input_channel,
+                intent=parse_data["intent"],
+                entities=parse_data["entities"],
+                timestamp=message.timestamp,
+            ),
+        )
 
-        await self.message_processor.handle_message(user_message)
-        return [msg.as_dict() for msg in output_channel.messages]
+        await self.session_processor.evolve_session(session_id, output_channel)
 
     async def get_session_events(
         self, session_id: str, after_timestamp: Optional[datetime] = None

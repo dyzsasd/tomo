@@ -10,7 +10,7 @@ from tomo.core.session import Session
 
 def generate_action_instruction(action: Type[Action]):
     instructions: List = [
-        f"Action Name: {action.name}",
+        f"Action Name: {action.action_name()}",
         f"Description: {action.description}",
     ]
     required_slots = action.required_slots()

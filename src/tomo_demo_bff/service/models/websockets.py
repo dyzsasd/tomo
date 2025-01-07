@@ -14,6 +14,12 @@ class MessageType(str, Enum):
     CUSTOM = "custom"
 
 
+class ActionType(str, Enum):
+    """Types of actions that can be sent through WebSocket"""
+
+    RUN_PENDING_ACTIONS = "run_pending_actions"
+
+
 class MessageContent(BaseModel):
     """Base content model for all message types"""
 
@@ -51,7 +57,7 @@ class ActionContent(MessageContent):
     """Content model for action messages"""
 
     content_type: MessageType = MessageType.ACTION
-    value: str = Field(description="Name of the action to perform")
+    value: ActionType = Field(description="action type ")
     parameters: Optional[Dict[str, Any]] = Field(
         None, description="Parameters for the action"
     )

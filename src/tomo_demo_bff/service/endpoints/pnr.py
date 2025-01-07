@@ -85,7 +85,6 @@ async def create_pnr_session(
         session.slots["pnr_number"] = Slot(
             name="pnr_number", extractable=False, value=request.pnr_number
         )
-        session.status = SessionStatus.ACTIVE
 
         # Initialize session pending actions
         session.pending_actions.extend(
@@ -93,6 +92,7 @@ async def create_pnr_session(
                 ExtractedAction(name=RetrievePNR.action_name(), arguments=None),
             ]
         )
+        session.status = SessionStatus.PENDING
 
         await tomo_service.session_manager.save(session)
 

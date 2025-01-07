@@ -15,7 +15,6 @@ from tomo.core.policies import PolicyManager
 from tomo.core.policies import PolicyPrediction
 from tomo.core.user_message import UserMessage
 from tomo.nlu.parser import NLUParser
-from tomo.shared.action_executor import ActionExector
 from tomo.shared.exceptions import TomoFatalException
 from tomo.shared.output_channel import OutputChannel
 from tomo.core.session_managers.base import SessionManager
@@ -40,20 +39,20 @@ class MessageProcessor:
             events = await action.run(output_channel, session) or []
             events.append(
                 ActionExecuted(
-                    action_name=action.name,
+                    action_name=action.action_name(),
                     policy=policy_name,
                 )
             )
         except Exception:
             logger.exception(
-                f"Encountered an exception while running action '{action.name}'."
+                f"Encountered an exception while running action '{action.action_name()}'."
                 "Bot will continue, but the actions events are lost. "
                 "Please check the logs of your action server for "
                 "more information."
             )
             events = [
                 ActionFailed(
-                    action_name=action.name,
+                    action_name=action.action_name(),
                     policy=policy_name,
                 )
             ]
@@ -64,7 +63,6 @@ class MessageProcessor:
         self,
         session_manager: SessionManager,
         policy_manager: PolicyManager,
-        action_exector: typing.Optional[ActionExector] = None,
         max_number_of_predictions: int = MAX_NUMBER_OF_PREDICTIONS,
         on_circuit_break: typing.Optional[typing.Callable] = None,
         nlu_parser: typing.Optional[NLUParser] = None,
@@ -74,7 +72,6 @@ class MessageProcessor:
         self.session_manager = session_manager
         self.max_number_of_predictions = max_number_of_predictions
         self.on_circuit_break = on_circuit_break
-        self.action_executor = action_exector
         self.nlu_parser = nlu_parser
         self.session_expiration = session_expiration
         self.policy_manager = policy_manager
@@ -207,7 +204,7 @@ class MessageProcessor:
                 return events
 
         async def _should_continue_loop(prediction: PolicyPrediction) -> bool:
-            return not Listen.name in prediction.action_names
+            return not Listen.action_name() in prediction.action_names
 
         continue_loop = True
         while continue_loop:

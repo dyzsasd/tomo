@@ -143,6 +143,9 @@ class RetrievePNR(Action):
             )
         ]
 
+    def need_approval(self):
+        return True
+
 
 class CancelExistingItinerary(Action):
     description: typing.ClassVar[

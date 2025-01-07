@@ -11,7 +11,7 @@ class PolicyPrediction(BaseModel):
 
     @property
     def action_names(self):
-        return [action.name for action in self.actions]
+        return [action.action_name() for action in self.actions]
 
 
 class ExtractedAction(BaseModel):

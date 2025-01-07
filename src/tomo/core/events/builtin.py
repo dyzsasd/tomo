@@ -6,6 +6,7 @@ from pydantic import Field
 from tomo.nlu.models import Entity, IntentExtraction
 from tomo.core.events.base import Event
 from tomo.core.models import SessionStatus
+from tomo.core.policies.models import ExtractedAction
 
 if typing.TYPE_CHECKING:
     from tomo.core.session import Session
@@ -153,6 +154,27 @@ class SlotUnset(Event):
     @property
     def name(self):
         return f"Unset slot {self.key} value"
+
+
+class AddPendingActions(Event):
+    event_type: str = "add_pending_actions"
+
+    actions: typing.List[ExtractedAction] = []
+
+    def apply_to(self, session: "Session") -> None:
+        """
+        Update the session by setting the specified slot value.
+
+        Args:
+            session: The session where the slot value will be updated.
+        """
+        session.pending_actions.extend(self.actions)
+
+    @property
+    def name(self):
+        return (
+            f"Add pending actions: {''.join([action.name for action in self.actions])}"
+        )
 
 
 class ActionExecuted(Event):

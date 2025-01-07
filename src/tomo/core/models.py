@@ -6,5 +6,6 @@ class SessionStatus(str, Enum):
 
     ACTIVE = "active"
     PENDING = "pending"
+    WAITING = "waiting"
     ARCHIVED = "archived"
     DELETED = "deleted"

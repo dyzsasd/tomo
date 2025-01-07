@@ -53,6 +53,9 @@ class Action(BaseModel):
     ) -> typing.Optional[typing.List[Event]]:
         pass
 
+    def need_approval(self) -> bool:
+        return False
+
 
 class DummyAction(Action):
     description: typing.ClassVar[str] = "dummy action for test purpose"
